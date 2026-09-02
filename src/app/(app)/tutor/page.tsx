@@ -1,172 +1,241 @@
 "use client";
-import { useState, useRef, useEffect, Suspense } from 'react';
-import { motion } from 'framer-motion';
-import { Mic, Send, Expand, Shrink, BookOpen, Activity, Target, Clock, Zap } from 'lucide-react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, Send, Zap, UserCircle2, CheckCircle2 } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
-import ProceduralAvatar from '../../../components/teacher/ProceduralAvatar';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAIIntentStore } from '@/store/useAIIntentStore';
-import * as THREE from 'three';
-
-// Premium Ready Player Me Models (Public Samples)
-
-
+import ProceduralAvatar from '../../../components/teacher/ProceduralAvatar';
+import { NeuralNetworkBoard } from '../../../components/teacher/NeuralNetworkBoard';
 
 export default function TutorPage() {
-  const { profile } = useAuthStore();
+  const { profile, updateProfile } = useAuthStore();
   const { teacherState, setTeacherState } = useAIIntentStore();
   
   const isMale = profile?.tutorGender === 'male';
   const name = isMale ? 'ALEX' : 'ARIA';
   
-  
-  const isSpeaking = teacherState === 'speaking' || teacherState === 'teaching';
-  
-  const [messages, setMessages] = useState([
-    { role: 'teacher', text: `Hello! I'm ${name}, your AI tutor. Today we're exploring Neural Networks. What would you like to focus on?`, time: '03:19 PM' }
-  ]);
+  // State Machine for Demo
+  const [demoState, setDemoState] = useState<'intro' | 'explain_weights' | 'wait_for_slider' | 'slider_moved' | 'evaluate_answer' | 'success'>('intro');
+  const [weight, setWeight] = useState(1.0);
+  const [caption, setCaption] = useState("");
+  const [messages, setMessages] = useState<{role: string, text: string}[]>([]);
   const [input, setInput] = useState('');
-  const chatRef = useRef<HTMLDivElement>(null);
+  const [showSelector, setShowSelector] = useState(false);
 
+  // Demo sequence orchestration
   useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  }, [messages]);
+    let timeoutId: NodeJS.Timeout | undefined;
 
-  const handleSend = (overrideText?: string) => {
-    const text = overrideText || input;
-    if (!text.trim()) return;
-    
-    setMessages(prev => [...prev, { role: 'user', text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
-    setInput('');
-    setTeacherState('thinking', '');
-    
-    setTimeout(() => {
-      setTeacherState('speaking', '');
-      setMessages(prev => [...prev, { 
-        role: 'teacher', 
-        text: "Great choice! Let's break it down. A neural network learns by adjusting the weights in its connections based on the error between its prediction and the actual output.", 
-        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-      }]);
-      setTimeout(() => setTeacherState('listening', ''), 5000);
-    }, 1500);
+    const speak = (text: string, state: import('@/types/teacher').TeacherState = 'speaking', duration: number = 3000) => {
+      setCaption(text);
+      setTeacherState(state, text);
+      return new Promise(resolve => setTimeout(resolve, duration));
+    };
+
+    const runDemo = async () => {
+      if (demoState === 'intro') {
+        await speak(`Welcome! I'm ${name}, your AI Tutor. Let's build a Neural Network.`, 'teaching', 4000);
+        await speak("On the board, you see the Input, Hidden, and Output layers.", 'pointing', 4000);
+        setDemoState('explain_weights');
+      } else if (demoState === 'explain_weights') {
+        await speak("The connections between neurons have 'weights'. These determine the signal strength.", 'teaching', 5000);
+        await speak("Try adjusting the weight (w₁) on the board to see how it affects the network.", 'pointing', 4000);
+        setDemoState('wait_for_slider');
+        setTeacherState('listening', '');
+        setCaption("Waiting for you to adjust the weight...");
+      } else if (demoState === 'slider_moved') {
+        await speak(`Great! You set the weight to ${weight.toFixed(2)}.`, 'celebrating', 3000);
+        await speak("If we want the network to output a MATCH, should the weight be higher or lower than 1.0?", 'questioning', 5000);
+        setDemoState('evaluate_answer');
+        setTeacherState('listening', '');
+        setCaption("Type your answer below...");
+      } else if (demoState === 'success') {
+        await speak("Exactly! Increasing the weight amplifies the signal to match the target pattern.", 'celebrating', 5000);
+        await speak("You're a natural at this. Let's move on to Backpropagation!", 'teaching', 4000);
+        setTeacherState('idle', '');
+        setCaption("");
+      }
+    };
+
+    runDemo();
+
+    return () => { if (timeoutId) clearTimeout(timeoutId); };
+  }, [demoState, name, setTeacherState]); // Removed weight from dependency to prevent re-running demo on slider move
+
+  const handleWeightChange = (val: number) => {
+    setWeight(val);
+    if (demoState === 'wait_for_slider') {
+      setDemoState('slider_moved');
+    }
   };
 
-  const QUICK_ACTIONS = ['Explain differently', 'Show me visually', 'Give an example', 'Quiz me'];
+  const handleSend = () => {
+    if (!input.trim()) return;
+    setMessages(prev => [...prev, { role: 'user', text: input }]);
+    
+    if (demoState === 'evaluate_answer') {
+      const isCorrect = input.toLowerCase().includes('higher') || input.toLowerCase().includes('increase');
+      setInput('');
+      
+      if (isCorrect) {
+        setDemoState('success');
+      } else {
+        setCaption("Not quite. Think about strengthening the signal. Try again!");
+        setTeacherState('correcting', 'Not quite.');
+        setTimeout(() => setTeacherState('listening', ''), 3000);
+      }
+    } else {
+      setInput('');
+    }
+  };
 
   return (
-    <div className="flex h-full bg-background text-hexagon-text-primary">
+    <div className="flex h-full w-full bg-background text-hexagon-text-primary overflow-hidden relative">
       
-      {/* LEFT: Full Vertical Avatar */}
-      <div className="w-2/5 h-full relative border-r border-hexagon-border overflow-hidden bg-hexagon-surface">
+      {/* LEFT: Full Vertical 3D Teacher */}
+      <div className="w-[35%] h-full relative border-r border-hexagon-border bg-hexagon-surface">
         <Canvas camera={{ position: [0, 0.2, 2.5], fov: 40 }} className="w-full h-full">
           <ambientLight intensity={0.8} />
           <directionalLight position={[2, 5, 2]} intensity={1.5} color="#ffffff" />
           <directionalLight position={[-3, 2, -2]} intensity={1} color="#00FF9D" />
           <Environment preset="city" />
           
-          <ProceduralAvatar />
+          <ProceduralAvatar 
+            lookAtBoard={demoState !== 'intro'} 
+            pointAtBoard={teacherState === 'pointing'} 
+          />
 
           <ContactShadows position={[0, -1.6, 0]} opacity={0.7} scale={10} blur={2} far={4} />
-          <OrbitControls 
-             enableZoom={true} minDistance={1.5} maxDistance={5} 
-             enablePan={false} 
-             maxPolarAngle={Math.PI/2} 
-             minPolarAngle={Math.PI/3}
-             minAzimuthAngle={-Math.PI/4}
-             maxAzimuthAngle={Math.PI/4}
-          />
+          <OrbitControls enableZoom={true} minDistance={1.5} maxDistance={5} enablePan={false} />
         </Canvas>
 
-        {/* Minimal status overlay */}
-        <div className="absolute top-6 left-6 flex items-center gap-3 bg-background/60 backdrop-blur-md border border-hexagon-border px-4 py-2 rounded-full shadow-lg">
-          <div className={`w-2.5 h-2.5 rounded-full ${isSpeaking ? 'bg-hexagon-accent animate-pulse' : 'bg-hexagon-text-secondary'}`} />
-          <span className="text-sm font-semibold tracking-wide">{name}</span>
+        {/* Teacher Controls Overlay */}
+        <div className="absolute top-6 left-6 flex items-center justify-between right-6">
+          <div className="flex items-center gap-3 bg-background/60 backdrop-blur-md border border-hexagon-border px-4 py-2 rounded-full shadow-lg">
+            <div className={`w-2.5 h-2.5 rounded-full ${teacherState !== 'idle' ? 'bg-hexagon-accent animate-pulse' : 'bg-hexagon-text-secondary'}`} />
+            <span className="text-sm font-semibold tracking-wide">{name}</span>
+          </div>
+          <button 
+            onClick={() => setShowSelector(true)}
+            className="bg-background/60 backdrop-blur-md border border-hexagon-border px-3 py-2 rounded-full hover:bg-hexagon-surface transition-colors flex items-center gap-2 text-sm font-medium"
+          >
+            <UserCircle2 className="w-4 h-4" /> Change Tutor
+          </button>
         </div>
       </div>
 
-      {/* RIGHT: Chat Interface */}
-      <div className="flex-1 flex flex-col relative">
-        {/* Header */}
-        <div className="h-16 border-b border-hexagon-border bg-background/50 backdrop-blur-sm flex items-center px-8 flex-shrink-0">
-           <h2 className="font-semibold text-lg flex items-center gap-2">
-             <Zap className="w-5 h-5 text-hexagon-accent" /> Neural Networks
-           </h2>
+      {/* RIGHT: Digital Classroom Board & Chat */}
+      <div className="flex-1 flex flex-col relative p-6 gap-6">
+        
+        {/* Large Teaching Board */}
+        <div className="flex-1 w-full rounded-[2rem] overflow-hidden">
+          <NeuralNetworkBoard 
+            demoState={demoState}
+            weightValue={weight}
+            onWeightChange={handleWeightChange}
+          />
         </div>
 
-        {/* Chat Bubbles */}
-        <div ref={chatRef} className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide pb-32">
-          {messages.map((m, i) => (
+        {/* Captions & Controls Bottom Area */}
+        <div className="h-48 flex gap-6 shrink-0">
+          
+          {/* Captions/Subtitle Box */}
+          <div className="flex-1 bg-hexagon-surface border border-hexagon-border rounded-3xl p-6 flex flex-col justify-center relative overflow-hidden">
+            <div className="absolute top-4 left-4 flex items-center gap-2">
+               <Mic className={`w-4 h-4 ${teacherState !== 'idle' && teacherState !== 'listening' ? 'text-hexagon-accent animate-pulse' : 'text-hexagon-text-secondary'}`} />
+               <span className="text-xs font-semibold text-hexagon-text-secondary uppercase tracking-wider">Transcripts</span>
+            </div>
+            <p className="text-2xl font-medium text-center leading-relaxed mt-4">
+              {caption}
+            </p>
+          </div>
+
+          {/* Secondary Chat / Input Area */}
+          <div className="w-1/3 bg-hexagon-surface border border-hexagon-border rounded-3xl p-4 flex flex-col">
+             <div className="flex-1 overflow-y-auto mb-4 space-y-2 scrollbar-hide flex flex-col justify-end">
+                {messages.slice(-3).map((m, i) => (
+                  <div key={i} className="bg-[#111] p-3 rounded-2xl text-sm border border-hexagon-border ml-auto max-w-[90%]">
+                    {m.text}
+                  </div>
+                ))}
+             </div>
+             <div className="relative">
+                <input 
+                  type="text" 
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSend()}
+                  placeholder="Reply to teacher..."
+                  className="w-full bg-[#111] border border-hexagon-border py-3 pl-4 pr-12 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors"
+                />
+                <button 
+                  onClick={handleSend}
+                  className="absolute right-2 top-1.5 p-1.5 bg-hexagon-accent text-black rounded-lg hover:bg-hexagon-accent/90"
+                >
+                  <Send className="w-4 h-4 ml-0.5" />
+                </button>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TEACHER SELECTION MODAL */}
+      <AnimatePresence>
+        {showSelector && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
+          >
             <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              key={i} 
-              className={`flex flex-col max-w-[80%] ${m.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-hexagon-surface border border-hexagon-border rounded-[2rem] p-8 w-[800px] shadow-2xl flex flex-col"
             >
-              {m.role === 'teacher' && (
-                <span className="text-xs text-hexagon-text-secondary mb-1.5 ml-1 font-medium tracking-wide">
-                  {name} • {m.time}
-                </span>
-              )}
-              <div className={`p-5 text-[15px] leading-relaxed shadow-sm ${
-                m.role === 'user' 
-                  ? 'bg-hexagon-accent text-black font-medium rounded-3xl rounded-tr-sm' 
-                  : 'bg-hexagon-surface border border-hexagon-border rounded-3xl rounded-tl-sm'
-              }`}>
-                {m.text}
+              <h2 className="text-2xl font-bold mb-2">Select Your AI Tutor</h2>
+              <p className="text-hexagon-text-secondary mb-8">Choose the personality and teaching style that fits your learning journey.</p>
+              
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                {/* ARIA */}
+                <button 
+                  onClick={() => { updateProfile({ tutorGender: 'female' }); setShowSelector(false); }}
+                  className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all ${!isMale ? 'border-hexagon-accent bg-[#051510]' : 'border-hexagon-border bg-[#111] hover:border-gray-500'}`}
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">ARIA</h3>
+                    {!isMale && <CheckCircle2 className="w-6 h-6 text-hexagon-accent" />}
+                  </div>
+                  <p className="text-sm text-hexagon-text-secondary mb-4">Warm, thoughtful, patient, intelligent. Specializes in deep conceptual understanding and Socratic questioning.</p>
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    <span className="text-xs px-2 py-1 bg-background rounded-md">Patient</span>
+                    <span className="text-xs px-2 py-1 bg-background rounded-md">Socratic</span>
+                  </div>
+                </button>
+
+                {/* ALEX */}
+                <button 
+                  onClick={() => { updateProfile({ tutorGender: 'male' }); setShowSelector(false); }}
+                  className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all ${isMale ? 'border-blue-500 bg-[#051015]' : 'border-hexagon-border bg-[#111] hover:border-gray-500'}`}
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">ALEX</h3>
+                    {isMale && <CheckCircle2 className="w-6 h-6 text-blue-500" />}
+                  </div>
+                  <p className="text-sm text-hexagon-text-secondary mb-4">Confident, analytical, energetic, practical. Focuses on rapid problem solving and applied knowledge.</p>
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    <span className="text-xs px-2 py-1 bg-background rounded-md">Analytical</span>
+                    <span className="text-xs px-2 py-1 bg-background rounded-md">Energetic</span>
+                  </div>
+                </button>
               </div>
-            </motion.div>
-          ))}
-          {teacherState === 'thinking' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start max-w-[80%]">
-               <div className="p-5 bg-hexagon-surface border border-hexagon-border rounded-3xl rounded-tl-sm flex gap-2 items-center">
-                 {[1,2,3].map(i => (
-                   <motion.div key={i} className="w-2 h-2 bg-hexagon-text-secondary rounded-full" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.15 }} />
-                 ))}
-               </div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Input Area */}
-        <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-background via-background to-transparent pt-12">
-          {/* Quick Actions (Small pills above input) */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {QUICK_ACTIONS.map(action => (
-              <button 
-                key={action}
-                onClick={() => handleSend(action)}
-                className="px-4 py-2 rounded-full bg-hexagon-surface border border-hexagon-border text-sm font-medium hover:border-hexagon-accent hover:text-hexagon-accent transition-colors"
-              >
-                {action}
+              
+              <button onClick={() => setShowSelector(false)} className="self-end px-6 py-2 bg-background border border-hexagon-border rounded-xl font-medium hover:bg-white/5 transition-colors">
+                Cancel
               </button>
-            ))}
-          </div>
-
-          {/* Text Input */}
-          <div className="relative flex items-center bg-hexagon-surface border border-hexagon-border rounded-2xl shadow-xl focus-within:border-hexagon-accent transition-colors">
-            <button className="absolute left-4 p-2 text-hexagon-text-secondary hover:text-hexagon-text-primary transition-colors rounded-full hover:bg-background">
-              <Mic className="w-5 h-5" />
-            </button>
-            <input 
-              type="text" 
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder={`Ask ${name} anything...`}
-              className="w-full bg-transparent border-none py-5 pl-14 pr-16 text-hexagon-text-primary placeholder:text-hexagon-text-secondary outline-none"
-            />
-            <button 
-              onClick={() => handleSend()}
-              className="absolute right-3 p-2.5 bg-hexagon-accent text-black rounded-xl hover:bg-hexagon-accent/90 transition-colors"
-            >
-              <Send className="w-5 h-5 ml-0.5" />
-            </button>
-          </div>
-        </div>
-      </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

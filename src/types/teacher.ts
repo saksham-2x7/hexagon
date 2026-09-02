@@ -1,4 +1,4 @@
-export type TeacherState = 'idle' | 'speaking' | 'listening' | 'thinking' | 'teaching' | 'waiting' | 'celebrating' | 'correcting' | 'concerned' | 'paused';
+export type TeacherState = 'idle' | 'speaking' | 'listening' | 'thinking' | 'teaching' | 'pointing' | 'questioning' | 'waiting' | 'celebrating' | 'correcting' | 'concerned' | 'paused';
 
 export interface TeacherContext {
   state: TeacherState;

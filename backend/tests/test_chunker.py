@@ -310,3 +310,58 @@ def test_end_to_end_milestone1_to_milestone2_pipeline():
     section_titles = [c.section_title for c in chunked_doc.chunks if c.section_title]
     assert any("Chapter 1" in title for title in section_titles)
     assert any("Chapter 2" in title for title in section_titles)
+
+
+def test_processed_document_chunk_method_bridge():
+    """Test ProcessedDocument.chunk() convenience method linking Milestone 1 & 2."""
+    page1 = DocumentPage(page_number=1, text="Calculus Lecture 1\nLimits and Continuity.")
+    page2 = DocumentPage(page_number=2, text="Calculus Lecture 2\nDerivatives and Rules.")
+    doc = ProcessedDocument(
+        file_name="calculus.txt",
+        file_type="txt",
+        total_pages=2,
+        pages=[page1, page2],
+        raw_text="Calculus Lecture 1\nLimits and Continuity.\n\nCalculus Lecture 2\nDerivatives and Rules.",
+        metadata={"course": "Math 101"},
+    )
+
+    # Call .chunk() directly on ProcessedDocument
+    chunked = doc.chunk(chunk_size_chars=50)
+    assert isinstance(chunked, ChunkedDocument)
+    assert chunked.file_name == "calculus.txt"
+    assert chunked.total_chunks >= 2
+    assert chunked.chunks[0].primary_page == 1
+
+
+def test_document_processor_extract_and_chunk_bridge():
+    """Test DocumentProcessor.extract_and_chunk() single-call end-to-end bridge."""
+    txt_bytes = b"Biology 101\nCellular respiration produces ATP.\fPhotosynthesis produces glucose."
+    
+    chunked = DocumentProcessor.extract_and_chunk(
+        file_source=txt_bytes,
+        file_name="biology.txt",
+        file_type="txt",
+        chunk_size_chars=80,
+    )
+
+    assert isinstance(chunked, ChunkedDocument)
+    assert chunked.file_name == "biology.txt"
+    assert chunked.total_chunks >= 2
+    assert chunked.chunks[0].primary_page == 1
+    assert chunked.chunks[1].primary_page == 2
+
+
+def test_semantic_chunker_chunk_file_bridge():
+    """Test SemanticChunker.chunk_file() single-call convenience bridge."""
+    txt_bytes = b"# Chapter 1: Economics\nSupply and demand dictate market equilibrium."
+    chunker = SemanticChunker()
+    
+    chunked = chunker.chunk_file(
+        file_source=txt_bytes,
+        file_name="econ.txt",
+        file_type="txt",
+    )
+
+    assert isinstance(chunked, ChunkedDocument)
+    assert chunked.total_chunks == 1
+    assert chunked.chunks[0].section_title == "Chapter 1: Economics"

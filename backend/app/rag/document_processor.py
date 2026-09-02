@@ -67,6 +67,14 @@ class ProcessedDocument:
             "metadata": self.metadata,
         }
 
+    def chunk(self, chunker: Optional[Any] = None, **chunker_kwargs) -> Any:
+        """
+        Directly chunk this processed document using SemanticChunker (Milestones 1 & 2 bridge).
+        """
+        from app.rag.chunker import SemanticChunker
+        c = chunker or SemanticChunker(**chunker_kwargs)
+        return c.chunk_document(self)
+
 
 class DocumentProcessor:
     """
@@ -93,26 +101,19 @@ class DocumentProcessor:
         if not text:
             return ""
 
-        # Normalize Unicode representations
         normalized = unicodedata.normalize("NFKC", text)
-
-        # Replace carriage return line feeds with standard newlines
         normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
 
-        # Filter out ASCII/Unicode control characters (Cc), preserving \n and \t and format characters
         cleaned_chars = [
             char for char in normalized
             if char in ("\n", "\t") or (unicodedata.category(char) != "Cc" and ord(char) >= 32)
         ]
         cleaned_text = "".join(cleaned_chars)
 
-        # Clean trailing whitespaces per line
         cleaned_lines = [re.sub(r"[ \t]+$", "", line) for line in cleaned_text.split("\n")]
         cleaned_text = "\n".join(cleaned_lines)
 
-        # Collapse 3 or more consecutive newlines into 2 (standard paragraph break)
         cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
-
         return cleaned_text.strip()
 
     @classmethod
@@ -163,7 +164,6 @@ class DocumentProcessor:
 
         if hasattr(file_source, "read"):
             try:
-                # If stream is seekable and cursor is at non-zero or EOF, handle gracefully
                 if hasattr(file_source, "tell") and hasattr(file_source, "seek"):
                     pos = file_source.tell()
                     content = file_source.read()
@@ -204,15 +204,6 @@ class DocumentProcessor:
     ) -> ProcessedDocument:
         """
         Universal entry point to extract clean text from educational documents.
-
-        Args:
-            file_source: File path (str/Path), file-like stream (BytesIO/BinaryIO), or raw bytes.
-            file_type: Optional explicit file type/extension/MIME (e.g., 'pdf', '.pdf', 'application/pdf').
-            file_name: Optional original file name.
-            raise_on_empty: If True, raises EmptyDocumentError if no readable text is found.
-
-        Returns:
-            ProcessedDocument containing extracted pages, clean raw text, and metadata.
         """
         resolved_ext = cls._resolve_file_type(file_source, file_type, file_name)
         file_bytes = cls._read_bytes(file_source)
@@ -252,6 +243,28 @@ class DocumentProcessor:
                 )
 
         return doc
+
+    @classmethod
+    def extract_and_chunk(
+        cls,
+        file_source: Union[str, Path, BinaryIO, bytes],
+        file_type: Optional[str] = None,
+        file_name: Optional[str] = None,
+        raise_on_empty: bool = True,
+        chunker: Optional[Any] = None,
+        **chunker_kwargs,
+    ) -> Any:
+        """
+        Extract clean text and immediately return semantically chunked output.
+        Unified bridge between Milestone 1 (extraction) and Milestone 2 (chunking).
+        """
+        processed_doc = cls.extract_text(
+            file_source=file_source,
+            file_type=file_type,
+            file_name=file_name,
+            raise_on_empty=raise_on_empty,
+        )
+        return processed_doc.chunk(chunker=chunker, **chunker_kwargs)
 
     @classmethod
     def _process_pdf(cls, file_bytes: bytes, file_name: Optional[str]) -> ProcessedDocument:
@@ -350,7 +363,6 @@ class DocumentProcessor:
                     seen_cells = set()
                     row_cells: List[str] = []
                     for cell in row.cells:
-                        # Deduplicate horizontally merged cells
                         if cell._tc not in seen_cells:
                             seen_cells.add(cell._tc)
                             cell_str = cell.text.strip().replace("\n", " ")

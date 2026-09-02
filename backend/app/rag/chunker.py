@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import hashlib
 import math
+from pathlib import Path
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, BinaryIO, Dict, List, Optional, Sequence, Tuple, Union
 
 from app.rag.document_processor import DocumentPage, ProcessedDocument
 from app.rag.exceptions import ChunkingError
@@ -92,8 +93,8 @@ class SemanticChunker:
     def __init__(
         self,
         chunk_size_chars: int = 1800,
-        chunk_overlap_chars: int = 250,
-        min_chunk_size_chars: int = 80,
+        chunk_overlap_chars: Optional[int] = None,
+        min_chunk_size_chars: Optional[int] = None,
         token_estimation_ratio: float = 4.0,
     ):
         """
@@ -107,6 +108,13 @@ class SemanticChunker:
         """
         if chunk_size_chars <= 0:
             raise ValueError("chunk_size_chars must be greater than 0")
+
+        if chunk_overlap_chars is None:
+            chunk_overlap_chars = max(0, int(chunk_size_chars * 0.14))
+
+        if min_chunk_size_chars is None or min_chunk_size_chars >= chunk_size_chars:
+            min_chunk_size_chars = max(10, int(chunk_size_chars * 0.05))
+
         if chunk_overlap_chars < 0:
             raise ValueError("chunk_overlap_chars cannot be negative")
         if chunk_overlap_chars >= chunk_size_chars:
@@ -139,7 +147,6 @@ class SemanticChunker:
         for pattern in self.HEADING_PATTERNS:
             match = pattern.match(cleaned_line)
             if match:
-                # Return the full clean heading line
                 return cleaned_line.strip("#* ").strip()
 
         # Check short all-caps lines with colon or title style (e.g. "LEARNING OBJECTIVES:")
@@ -165,6 +172,24 @@ class SemanticChunker:
         digest = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
         prefix = re.sub(r"[^a-zA-Z0-9_-]", "_", file_name or "chunk")[:12]
         return f"{prefix}_p{primary_page}_c{chunk_index}_{digest}"
+
+    def chunk_file(
+        self,
+        file_source: Union[str, Path, BinaryIO, bytes],
+        file_type: Optional[str] = None,
+        file_name: Optional[str] = None,
+        extra_metadata: Optional[Dict[str, Any]] = None,
+    ) -> ChunkedDocument:
+        """
+        Extracts clean text and chunks a file source in a single end-to-end call (Milestone 1 + 2 bridge).
+        """
+        from app.rag.document_processor import DocumentProcessor
+        extracted_doc = DocumentProcessor.extract_text(
+            file_source=file_source,
+            file_type=file_type,
+            file_name=file_name,
+        )
+        return self.chunk_document(extracted_doc, extra_metadata=extra_metadata)
 
     def chunk_document(
         self,
@@ -204,10 +229,7 @@ class SemanticChunker:
                     metadata=doc_meta,
                 )
 
-            # Step 1: Extract atomic semantic units (paragraphs/blocks) with page & heading tags
             tagged_blocks = self._extract_tagged_blocks(pages)
-
-            # Step 2: Assemble semantic blocks into chunk windows with overlap
             chunks = self._assemble_chunks(tagged_blocks, inferred_name, doc_meta)
 
             total_chars = sum(c.char_count for c in chunks)
@@ -294,6 +316,7 @@ class SemanticChunker:
         """
         Extracts paragraphs and segments from pages, associating each block with
         its source page number and the prevailing section title.
+        Splits on heading transitions even within single newlines.
         """
         tagged_blocks: List[Dict[str, Any]] = []
         current_section: Optional[str] = None
@@ -304,43 +327,65 @@ class SemanticChunker:
             if not page_text.strip():
                 continue
 
-            # Split into paragraphs by double newlines or single newlines with markdown/headings
-            paragraphs = re.split(r"\n\s*\n", page_text)
+            lines = page_text.split("\n")
+            current_block_lines: List[str] = []
 
-            for para in paragraphs:
-                para_clean = para.strip()
-                if not para_clean:
+            for line in lines:
+                line_clean = line.strip()
+                if not line_clean:
+                    if current_block_lines:
+                        block_text = "\n".join(current_block_lines).strip()
+                        if block_text:
+                            self._append_block(tagged_blocks, block_text, page_num, current_section)
+                        current_block_lines = []
                     continue
 
-                # Check if this paragraph or its first line is a heading
-                first_line = para_clean.split("\n")[0].strip()
-                detected = self.detect_heading(first_line)
+                detected = self.detect_heading(line_clean)
                 if detected:
+                    if current_block_lines:
+                        block_text = "\n".join(current_block_lines).strip()
+                        if block_text:
+                            self._append_block(tagged_blocks, block_text, page_num, current_section)
+                        current_block_lines = []
                     current_section = detected
-
-                # If paragraph itself is excessively large, split recursively into sentences
-                if len(para_clean) > self.chunk_size_chars:
-                    sub_sentences = self._split_large_paragraph(para_clean)
-                    for sent in sub_sentences:
-                        sent_clean = sent.strip()
-                        if sent_clean:
-                            tagged_blocks.append({
-                                "text": sent_clean,
-                                "page_number": page_num,
-                                "section_title": current_section,
-                            })
+                    current_block_lines.append(line_clean)
                 else:
-                    tagged_blocks.append({
-                        "text": para_clean,
-                        "page_number": page_num,
-                        "section_title": current_section,
-                    })
+                    current_block_lines.append(line_clean)
+
+            if current_block_lines:
+                block_text = "\n".join(current_block_lines).strip()
+                if block_text:
+                    self._append_block(tagged_blocks, block_text, page_num, current_section)
 
         return tagged_blocks
 
+    def _append_block(
+        self,
+        tagged_blocks: List[Dict[str, Any]],
+        text: str,
+        page_number: int,
+        section_title: Optional[str],
+    ) -> None:
+        """Helper to append a block, splitting if it exceeds chunk size."""
+        if len(text) > self.chunk_size_chars:
+            sub_sentences = self._split_large_paragraph(text)
+            for sent in sub_sentences:
+                sent_clean = sent.strip()
+                if sent_clean:
+                    tagged_blocks.append({
+                        "text": sent_clean,
+                        "page_number": page_number,
+                        "section_title": section_title,
+                    })
+        else:
+            tagged_blocks.append({
+                "text": text,
+                "page_number": page_number,
+                "section_title": section_title,
+            })
+
     def _split_large_paragraph(self, text: str) -> List[str]:
         """Splits an oversized paragraph into sentence or word-level units."""
-        # Split on sentences (. ! ? followed by space) or newlines
         sentences = re.split(r"(?<=[.!?])\s+", text)
         results: List[str] = []
 
@@ -349,7 +394,6 @@ class SemanticChunker:
             if not sent_str:
                 continue
 
-            # If a single sentence is still larger than chunk_size, split by word chunks
             if len(sent_str) > self.chunk_size_chars:
                 words = sent_str.split()
                 current_word_buf: List[str] = []
@@ -392,16 +436,13 @@ class SemanticChunker:
             block = tagged_blocks[i]
             block_len = len(block["text"])
 
-            # If adding this block exceeds target size and we already have accumulated text:
             if current_len + block_len + 2 > self.chunk_size_chars and current_blocks:
-                # Emit current accumulated chunk
                 chunk_obj = self._create_chunk_from_blocks(
                     current_blocks, chunk_idx, file_name, doc_meta
                 )
                 chunks.append(chunk_obj)
                 chunk_idx += 1
 
-                # Calculate overlap: retain trailing blocks that fit within chunk_overlap_chars
                 overlap_blocks: List[Dict[str, Any]] = []
                 overlap_len = 0
                 for b in reversed(current_blocks):
@@ -418,9 +459,7 @@ class SemanticChunker:
             current_len += block_len + 2
             i += 1
 
-        # Emit any remaining blocks
         if current_blocks:
-            # If the remaining block is tiny and we have previous chunks, merge if feasible
             chunk_obj = self._create_chunk_from_blocks(
                 current_blocks, chunk_idx, file_name, doc_meta
             )
@@ -430,7 +469,6 @@ class SemanticChunker:
                 and chunk_obj.char_count < self.min_chunk_size_chars
                 and (chunks[-1].char_count + chunk_obj.char_count + 2 <= self.chunk_size_chars + self.chunk_overlap_chars)
             ):
-                # Merge tiny trailing fragment with the last chunk
                 last = chunks[-1]
                 merged_text = f"{last.text}\n\n{chunk_obj.text}"
                 merged_pages = sorted(list(set(last.page_numbers + chunk_obj.page_numbers)))
@@ -460,11 +498,9 @@ class SemanticChunker:
         """Helper to create a DocumentChunk object from a collection of tagged blocks."""
         combined_text = "\n\n".join(b["text"] for b in blocks)
         
-        # Deduplicate and sort pages
         pages_seen = sorted(list(set(b["page_number"] for b in blocks)))
         primary_page = pages_seen[0] if pages_seen else 1
 
-        # Determine section title (prefer the first detected non-None heading in this window)
         section_title = None
         for b in blocks:
             if b.get("section_title"):

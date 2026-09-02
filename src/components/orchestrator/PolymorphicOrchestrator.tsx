@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
 import WebGLRepresentation from '../representations/WebGLRepresentation';
-import MockNodeRepresentation from '../representations/MockNodeRepresentation';
+import NodeCanvasRepresentation from '../representations/NodeCanvasRepresentation';
 
 export default function PolymorphicOrchestrator() {
   const activeRepresentation = useAIIntentStore((state) => state.activeRepresentation);
@@ -30,11 +30,10 @@ export default function PolymorphicOrchestrator() {
             transition={{ duration: 0.8, ease: "easeInOut" }}
             className="absolute inset-0"
           >
-            <MockNodeRepresentation />
+            <NodeCanvasRepresentation />
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
-

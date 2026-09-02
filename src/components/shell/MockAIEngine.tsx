@@ -4,8 +4,10 @@ import { useAIIntentStore } from '../../store/useAIIntentStore';
 import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
 import { LessonPhase, RepresentationId } from '../../types/orchestration';
 import { TeacherState } from '../../types/teacher';
+import { useRouter } from 'next/navigation';
 
 export default function MockAIEngine() {
+  const router = useRouter();
   const setRepresentation = useAIIntentStore(state => state.setRepresentation);
   const setLessonPhase = useAIIntentStore(state => state.setLessonPhase);
   const setTeacherState = useAIIntentStore(state => state.setTeacherState);
@@ -62,6 +64,15 @@ export default function MockAIEngine() {
           setLessonPhase('Construct');
           setRepresentation('manipulation');
           setTeacherState('speaking', 'Let\'s try doing this manually. Assemble the neural layers to minimize loss.');
+          
+          // Complete Lesson after a bit
+          setTimeout(() => {
+            setLessonPhase('Evaluate');
+            setTeacherState('speaking', 'Excellent work. Your mastery has increased.');
+            setTimeout(() => {
+              router.push('/lesson/summary');
+            }, 4000);
+          }, 8000);
         }, 3000);
       } else {
         // Misconception Loop
@@ -71,10 +82,24 @@ export default function MockAIEngine() {
           setLessonPhase('Observe');
           setRepresentation('timeline');
           setTeacherState('speaking', 'Look at the timeline. Every time the weight decreased, the error went up.');
+          
+          // Ask again after reviewing
+          setTimeout(() => {
+            setLessonPhase('Question');
+            setRepresentation('diagram');
+            setTeacherState('waiting', 'Now that you see the history, let\'s try again.');
+            setActiveQuestion({
+              id: 'q1_retry',
+              type: 'multiple_choice',
+              prompt: 'To raise the prediction, we should...',
+              options: ['Decrease the weight', 'Increase the weight'],
+              correctOption: 1,
+            });
+          }, 6000);
         }, 5000);
       }
     }
-  }, [events, setRepresentation, setLessonPhase, setTeacherState, setActiveQuestion]);
+  }, [events, setRepresentation, setLessonPhase, setTeacherState, setActiveQuestion, router]);
 
   return null;
 }

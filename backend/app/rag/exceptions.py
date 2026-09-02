@@ -1,9 +1,9 @@
 """
-Custom domain exceptions for document processing and text extraction in the RAG pipeline.
+Custom domain exceptions for document processing, text extraction, and chunking in the RAG pipeline.
 """
 
 class DocumentProcessingError(Exception):
-    """Base exception for all document processing errors."""
+    """Base exception for all document processing and RAG errors."""
     pass
 
 
@@ -24,4 +24,9 @@ class EmptyDocumentError(DocumentProcessingError):
 
 class FileAccessError(DocumentProcessingError):
     """Raised when a file cannot be found, accessed, or read from disk/stream."""
+    pass
+
+
+class ChunkingError(DocumentProcessingError):
+    """Raised when an error occurs during document chunking or metadata splitting."""
     pass

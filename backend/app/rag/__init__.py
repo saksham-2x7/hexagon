@@ -7,7 +7,13 @@ from app.rag.document_processor import (
     DocumentProcessor,
     ProcessedDocument,
 )
+from app.rag.chunker import (
+    ChunkedDocument,
+    DocumentChunk,
+    SemanticChunker,
+)
 from app.rag.exceptions import (
+    ChunkingError,
     CorruptedFileError,
     DocumentProcessingError,
     EmptyDocumentError,
@@ -19,9 +25,13 @@ __all__ = [
     "DocumentProcessor",
     "DocumentPage",
     "ProcessedDocument",
+    "SemanticChunker",
+    "DocumentChunk",
+    "ChunkedDocument",
     "DocumentProcessingError",
     "UnsupportedFileTypeError",
     "CorruptedFileError",
     "EmptyDocumentError",
     "FileAccessError",
+    "ChunkingError",
 ]

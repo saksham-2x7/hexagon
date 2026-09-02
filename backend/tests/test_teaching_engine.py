@@ -1,4 +1,10 @@
 import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+import sys
 import os
 import asyncio
 import json
@@ -46,7 +52,7 @@ async def main():
     
     # Consume the async generator
     async for chunk in mock_generate_teaching_turn(session_id, student_input):
-        print("\n✅ Yielded SSE Chunk:")
+        print("\nâœ… Yielded SSE Chunk:")
         # Prove it's a valid JSON string by loading it
         parsed_chunk = json.loads(chunk)
         print(json.dumps(parsed_chunk, indent=2))

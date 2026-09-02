@@ -6,7 +6,9 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useAIIntentStore } from '@/store/useAIIntentStore';
 import * as THREE from 'three';
 
-const MODEL_URL = '/models/aria.glb'; // Use the premium blazer avatar for both
+// We use the same premium blazer avatar for both, as requested by the user.
+// (Because alex.glb is just a placeholder head, and they liked the blazer model).
+const MODEL_URL = '/models/aria.glb';
 
 interface ProceduralAvatarProps {
   lookAtBoard?: boolean;
@@ -17,12 +19,12 @@ export default function ProceduralAvatar({ lookAtBoard = false, pointAtBoard = f
   const { profile } = useAuthStore();
   const { teacherState } = useAIIntentStore();
   
+  const isMale = profile?.tutorGender === 'male';
   const isSpeaking = teacherState === 'speaking' || teacherState === 'teaching' || teacherState === 'correcting' || teacherState === 'celebrating';
 
-  // We use the same high-quality blazer avatar for both Aria and Alex as requested
   const { scene, animations } = useGLTF(MODEL_URL);
   
-  // Clone scene so multiple instances don't share bones
+  // Clone scene so multiple instances don't share bones or materials
   const clonedScene = useMemo(() => scene.clone(), [scene]);
   
   const headRef = useRef<THREE.Object3D | null>(null);
@@ -54,14 +56,30 @@ export default function ProceduralAvatar({ lookAtBoard = false, pointAtBoard = f
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
+           // Clone material so we can tint it independently
+           mesh.material = (mesh.material as THREE.Material).clone();
            (mesh.material as THREE.Material).needsUpdate = true;
+           
            if (mesh.material instanceof THREE.MeshStandardMaterial) {
-              mesh.material.envMapIntensity = 1.2; // Enhance lighting
+              mesh.material.envMapIntensity = 1.2;
+              
+              // Tint the blazer to distinguish Aria (female) and Alex (male)
+              // The blazer usually has "blazer", "jacket", "suit", or "cloth" in its name or material name.
+              const matName = mesh.material.name.toLowerCase();
+              if (matName.includes('outfit_top') || matName.includes('blazer')) {
+                  if (!isMale) {
+                     // Aria: Elegant rose/magenta tint for the blazer
+                     mesh.material.color.setHex(0xb5179e); 
+                  } else {
+                     // Alex: Classic deep navy blue tint
+                     mesh.material.color.setHex(0x0f2046);
+                  }
+              }
            }
         }
       }
     });
-  }, [clonedScene]);
+  }, [clonedScene, isMale]);
 
   useFrame((state, delta) => {
     // 1. Handle Head & Gaze
@@ -92,7 +110,6 @@ export default function ProceduralAvatar({ lookAtBoard = false, pointAtBoard = f
     }
 
     if (clonedScene) {
-      // Ground the model firmly, only breathe subtly
       clonedScene.position.y = -1.6 + Math.sin(state.clock.elapsedTime * 2) * 0.01;
       clonedScene.position.x = 0;
       clonedScene.position.z = 0;

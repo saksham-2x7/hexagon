@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
 
       updateProfile: (updates) => {
         set((state) => ({
-          profile: state.profile ? { ...state.profile, ...updates } : null,
+          profile: state.profile ? { ...state.profile, ...updates } : { ...MOCK_USER, ...updates },
         }));
       },
 

@@ -40,7 +40,7 @@ export default function Home() {
         </h2>
         
         <p className="text-lg text-white/50 mb-12 max-w-2xl font-light leading-relaxed">
-          The teacher doesn't just explain. It changes the environment so you can understand. A polymorphic learning interface that adapts to your cognitive state in real-time.
+          The teacher doesn&apos;t just explain. It changes the environment so you can understand. A polymorphic learning interface that adapts to your cognitive state in real-time.
         </p>
 
         <Link href="/setup">

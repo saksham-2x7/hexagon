@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
 
 export default function ManipulationRepresentation() {
-  const [positions, setPositions] = useState({ a: { x: -100, y: 0 }, b: { x: 100, y: 0 } });
+  const [positions] = useState({ a: { x: -100, y: 0 }, b: { x: 100, y: 0 } });
   const dispatch = useSemanticDispatcher(s => s.dispatchAction);
 
-  const handleDragEnd = (id: string, info: any) => {
+  const handleDragEnd = (id: string, info: { offset: { x: number, y: number } }) => {
     dispatch({ type: 'object_drag_completed', objectId: id, offset: { x: info.offset.x, y: info.offset.y } });
   };
 

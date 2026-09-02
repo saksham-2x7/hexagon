@@ -1,9 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Polymorphic Learning Interface",
-  description: "Hexagon AI Tutor",
+  title: "HEXAGON | Learning that changes shape",
+  description: "A polymorphic learning interface that adapts to your cognitive state in real-time.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#050505",
 };
 
 export default function RootLayout({
@@ -13,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className="antialiased selection:bg-hexagon-accent selection:text-black">
         {children}
       </body>
     </html>

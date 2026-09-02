@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 type RepresentationEntry = {
   metadata: RepresentationMetadata;
-  component: ComponentType<any>;
+  component: ComponentType<unknown>;
 };
 
 const registry: Record<string, RepresentationEntry> = {

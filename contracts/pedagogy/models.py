@@ -42,7 +42,7 @@ class VisualIntentType(str, Enum):
 
 class VisualIntent(BaseModel):
     type: VisualIntentType
-    payload: Union[str, Dict[str, Any]]
+    payload: str
 
 class PromptType(str, Enum):
     CONCEPT_CHECK = "concept_check"

@@ -21,3 +21,4 @@ export default function LessonShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
+

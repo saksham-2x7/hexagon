@@ -4,3 +4,4 @@ export type LearnerProfile = {
   depthLevel: number;
   learningStyle: 'visual' | 'kinesthetic' | 'auditory' | 'reading';
 };
+

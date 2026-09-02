@@ -15,3 +15,4 @@ export const useInteractionStore = create<InteractionState>((set) => ({
   setDragging: (isDragging, itemId) => set({ isDragging, activeItemId: itemId || null }),
   setCameraAngle: (angle) => set({ cameraAngle: angle }),
 }));
+

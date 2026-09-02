@@ -23,3 +23,4 @@ export default function AnimatedSelector({ options, selected, onChange }: { opti
     </div>
   );
 }
+

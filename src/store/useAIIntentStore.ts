@@ -13,3 +13,4 @@ export const useAIIntentStore = create<AIIntentStore>((set) => ({
   setRepresentation: (rep) => set({ activeRepresentation: rep }),
   setScaffoldLevel: (level) => set({ scaffoldLevel: level }),
 }));
+

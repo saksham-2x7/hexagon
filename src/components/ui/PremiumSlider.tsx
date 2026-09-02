@@ -13,3 +13,4 @@ export default function PremiumSlider({ value, onChange }: { value: number; onCh
     </div>
   );
 }
+

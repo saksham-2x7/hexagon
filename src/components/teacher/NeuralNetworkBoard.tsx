@@ -1,6 +1,6 @@
 "use client";
 import { motion } from 'framer-motion';
-import { Network, BrainCircuit, Activity } from 'lucide-react';
+import { BrainCircuit, Activity } from 'lucide-react';
 
 interface NeuralNetworkBoardProps {
   demoState: string;
@@ -8,129 +8,130 @@ interface NeuralNetworkBoardProps {
   onWeightChange: (val: number) => void;
 }
 
-
-const Connection = ({ from, to, active, weight = 1, showSignal = false, signalColor = "#00FF9D" }: {from: string[], to: string[], active: boolean, weight?: number, showSignal?: boolean, signalColor?: string}) => {
-  return (
-    <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-      <motion.line 
-        x1={from[0]} y1={from[1]} x2={to[0]} y2={to[1]} 
-        stroke={active ? "#00FF9D" : "#333"} 
-        strokeWidth={Math.max(1, weight * 3)} 
-        strokeOpacity={active ? 0.8 : 0.4}
-      />
-      {showSignal && active && (
-        <motion.circle 
-          r="4" fill={signalColor}
-          initial={{ cx: from[0], cy: from[1], opacity: 0 }}
-          animate={{ cx: to[0], cy: to[1], opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-        />
-      )}
-    </svg>
-  );
-};
-
 export function NeuralNetworkBoard({ demoState, weightValue, onWeightChange }: NeuralNetworkBoardProps) {
   const isIntro = demoState === 'intro';
   const showWeights = demoState === 'explain_weights' || demoState === 'wait_for_slider' || demoState === 'slider_moved';
   const isEvaluating = demoState === 'evaluate_answer';
   const isSuccess = demoState === 'success';
 
-  // Node styles
-  const activeNode = "bg-hexagon-accent shadow-[0_0_15px_rgba(0,255,157,0.5)] border-transparent";
-  const inactiveNode = "bg-hexagon-surface border-hexagon-border border-2 text-hexagon-text-secondary";
-  const errorNode = "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] border-transparent";
+  // SVG coordinates for perfect alignment
+  const nodes = {
+    x1: { cx: 200, cy: 150, label: "X₁" },
+    x2: { cx: 200, cy: 350, label: "X₂" },
+    h1: { cx: 500, cy: 100, label: "H₁" },
+    h2: { cx: 500, cy: 250, label: "H₂" },
+    h3: { cx: 500, cy: 400, label: "H₃" },
+    y:  { cx: 800, cy: 250, label: "Y" },
+  };
 
-
+  const connections = [
+    { from: nodes.x1, to: nodes.h1, active: !isIntro, signal: !isIntro },
+    { from: nodes.x1, to: nodes.h2, active: !isIntro, signal: !isIntro },
+    { from: nodes.x1, to: nodes.h3, active: !isIntro, signal: false },
+    { from: nodes.x2, to: nodes.h1, active: !isIntro, signal: false },
+    { from: nodes.x2, to: nodes.h2, active: !isIntro, signal: false },
+    { from: nodes.x2, to: nodes.h3, active: !isIntro, signal: !isIntro },
+    { from: nodes.h1, to: nodes.y, active: isEvaluating || isSuccess, signal: isSuccess, weight: weightValue },
+    { from: nodes.h2, to: nodes.y, active: isEvaluating || isSuccess, signal: isSuccess, weight: 1 },
+    { from: nodes.h3, to: nodes.y, active: isEvaluating || isSuccess, signal: isSuccess, weight: 1 },
+  ];
 
   return (
-    <div className="w-full h-full bg-[#050505] rounded-[2rem] border border-hexagon-border p-8 flex flex-col relative overflow-hidden shadow-2xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8 z-10">
+    <div className="w-full h-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-3xl p-8 flex flex-col shadow-lg relative">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-hexagon-surface rounded-xl">
-            <BrainCircuit className="w-6 h-6 text-hexagon-accent" />
+          <div className="p-2 bg-[#111111] rounded-xl border border-[#1f1f1f]">
+            <BrainCircuit className="w-5 h-5 text-hexagon-accent" />
           </div>
-          <h3 className="text-xl font-bold tracking-tight">Neural Network Topology</h3>
+          <h3 className="text-xl font-bold tracking-tight text-white">Neural Network Topology</h3>
         </div>
-        <div className="flex items-center gap-2 text-sm text-hexagon-text-secondary font-medium bg-hexagon-surface px-4 py-1.5 rounded-full">
+        <div className="flex items-center gap-2 text-sm font-medium bg-[#111111] border border-[#1f1f1f] text-gray-400 px-4 py-1.5 rounded-full">
           <Activity className="w-4 h-4" />
           Live Forward Pass
         </div>
       </div>
 
-      {/* Network Visualization Area */}
-      <div className="flex-1 relative flex items-center justify-between px-16 z-10">
-        
-        {/* SVG Connections (hardcoded layout percentages for demo) */}
-        <div className="absolute inset-0 pointer-events-none">
-          <Connection from={["15%", "30%"]} to={["50%", "20%"]} active={!isIntro} showSignal={!isIntro} />
-          <Connection from={["15%", "30%"]} to={["50%", "50%"]} active={!isIntro} showSignal={!isIntro} />
-          <Connection from={["15%", "30%"]} to={["50%", "80%"]} active={!isIntro} />
-          
-          <Connection from={["15%", "70%"]} to={["50%", "20%"]} active={!isIntro} />
-          <Connection from={["15%", "70%"]} to={["50%", "50%"]} active={!isIntro} />
-          <Connection from={["15%", "70%"]} to={["50%", "80%"]} active={!isIntro} showSignal={!isIntro} />
+      <div className="flex-1 w-full relative">
+        <svg viewBox="0 0 1000 500" className="w-full h-full overflow-visible">
+          {/* Layer Labels */}
+          <text x={200} y={40} textAnchor="middle" className="fill-hexagon-text-secondary text-sm font-bold tracking-widest">INPUT</text>
+          <text x={500} y={40} textAnchor="middle" className="fill-hexagon-text-secondary text-sm font-bold tracking-widest">HIDDEN LAYER</text>
+          <text x={800} y={40} textAnchor="middle" className="fill-hexagon-text-secondary text-sm font-bold tracking-widest">OUTPUT</text>
 
-          {/* Hidden to Output connections */}
-          <Connection from={["50%", "20%"]} to={["85%", "50%"]} active={isEvaluating || isSuccess} showSignal={isSuccess} weight={weightValue} />
-          <Connection from={["50%", "50%"]} to={["85%", "50%"]} active={isEvaluating || isSuccess} showSignal={isSuccess} weight={1} />
-          <Connection from={["50%", "80%"]} to={["85%", "50%"]} active={isEvaluating || isSuccess} showSignal={isSuccess} weight={1} />
-        </div>
-
-        {/* Input Layer */}
-        <div className="flex flex-col gap-12 items-center relative z-10 w-[15%]">
-          <div className="text-sm font-semibold text-hexagon-text-secondary mb-4">INPUT</div>
-          <motion.div animate={{ scale: isIntro ? 1 : 1.1 }} className={`w-14 h-14 rounded-full flex items-center justify-center font-mono text-sm font-bold ${!isIntro ? activeNode : inactiveNode}`}>X₁</motion.div>
-          <motion.div animate={{ scale: isIntro ? 1 : 1.1 }} className={`w-14 h-14 rounded-full flex items-center justify-center font-mono text-sm font-bold ${!isIntro ? activeNode : inactiveNode}`}>X₂</motion.div>
-        </div>
-
-        {/* Hidden Layer */}
-        <div className="flex flex-col gap-8 items-center relative z-10 w-[50%]">
-          <div className="text-sm font-semibold text-hexagon-text-secondary mb-4">HIDDEN LAYER</div>
-          <motion.div className={`w-14 h-14 rounded-full flex items-center justify-center font-mono text-sm font-bold ${!isIntro ? activeNode : inactiveNode}`}>H₁</motion.div>
-          <motion.div className={`w-14 h-14 rounded-full flex items-center justify-center font-mono text-sm font-bold ${!isIntro ? activeNode : inactiveNode}`}>H₂</motion.div>
-          <motion.div className={`w-14 h-14 rounded-full flex items-center justify-center font-mono text-sm font-bold ${!isIntro ? activeNode : inactiveNode}`}>H₃</motion.div>
-          
-          {showWeights && (
-             <motion.div 
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="absolute -right-24 top-10 bg-hexagon-surface border border-hexagon-accent p-3 rounded-xl shadow-lg z-20 w-48"
-             >
-                <div className="text-xs font-semibold text-hexagon-accent mb-2">ADJUST WEIGHT (w₁)</div>
-                <input 
-                  type="range" 
-                  min="0" max="2" step="0.1" 
-                  value={weightValue} 
-                  onChange={(e) => onWeightChange(parseFloat(e.target.value))}
-                  className="w-full accent-hexagon-accent cursor-pointer"
+          {/* Connections */}
+          {connections.map((c, i) => (
+            <g key={`conn-${i}`}>
+              <line 
+                x1={c.from.cx} y1={c.from.cy} 
+                x2={c.to.cx} y2={c.to.cy} 
+                stroke={c.active ? "#00FF9D" : "currentColor"} 
+                strokeWidth={Math.max(1, (c.weight || 1) * 3)}
+                className={c.active ? "opacity-60" : "text-gray-400 opacity-20"}
+              />
+              {c.signal && (
+                <motion.circle 
+                  r="6" fill="#00FF9D"
+                  initial={{ cx: c.from.cx, cy: c.from.cy, opacity: 0 }}
+                  animate={{ cx: c.to.cx, cy: c.to.cy, opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                 />
-                <div className="text-right text-xs font-mono mt-1">w₁ = {weightValue.toFixed(2)}</div>
-             </motion.div>
-          )}
-        </div>
+              )}
+            </g>
+          ))}
 
-        {/* Output Layer */}
-        <div className="flex flex-col gap-12 items-center relative z-10 w-[15%]">
-          <div className="text-sm font-semibold text-hexagon-text-secondary mb-4">OUTPUT</div>
-          <motion.div 
-             animate={isSuccess ? { scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] } : {}}
-             className={`w-16 h-16 rounded-full flex items-center justify-center font-mono text-base font-bold text-black ${
-               isSuccess ? activeNode : 
-               (isEvaluating ? inactiveNode : inactiveNode)
-             }`}
-          >
-            Y
-          </motion.div>
-          {isSuccess && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute -bottom-10 text-hexagon-accent font-bold">
-              MATCH!
-            </motion.div>
-          )}
-        </div>
+          {/* Nodes */}
+          {Object.entries(nodes).map(([key, n]) => {
+            const isOutput = key === 'y';
+            const isActive = isIntro ? false : (isOutput ? isSuccess : true);
+            const r = isOutput ? 40 : 35;
+            return (
+              <g key={key}>
+                <motion.circle 
+                  cx={n.cx} cy={n.cy} r={r}
+                  className={`transition-colors duration-500 ${isActive ? 'fill-hexagon-accent' : 'fill-hexagon-surface'} stroke-hexagon-border`}
+                  strokeWidth="2"
+                  animate={isOutput && isSuccess ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                />
+                <text 
+                  x={n.cx} y={n.cy} 
+                  dominantBaseline="middle" textAnchor="middle" 
+                  className={`font-mono font-bold text-lg ${isActive ? 'fill-black' : 'fill-hexagon-text-primary'}`}
+                >
+                  {n.label}
+                </text>
+                {isOutput && isSuccess && (
+                  <motion.text 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: -60 }}
+                    x={n.cx} y={n.cy} textAnchor="middle"
+                    className="fill-hexagon-accent font-bold text-xl"
+                  >
+                    MATCH!
+                  </motion.text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+        
+        {/* HTML Overlay for the Slider */}
+        {showWeights && (
+           <motion.div 
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
+             className="absolute top-[30%] left-[55%] bg-[#0a0a0a] border border-hexagon-accent p-4 rounded-2xl shadow-2xl z-20 w-64"
+           >
+              <div className="text-sm font-bold text-hexagon-accent mb-3">ADJUST WEIGHT (w₁)</div>
+              <input 
+                type="range" 
+                min="0" max="2" step="0.1" 
+                value={weightValue} 
+                onChange={(e) => onWeightChange(parseFloat(e.target.value))}
+                className="w-full accent-hexagon-accent cursor-pointer"
+              />
+              <div className="text-right text-sm font-mono mt-2 text-white">w₁ = {weightValue.toFixed(2)}</div>
+           </motion.div>
+        )}
       </div>
-
     </div>
   );
 }

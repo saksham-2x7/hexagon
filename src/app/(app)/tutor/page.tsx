@@ -92,10 +92,10 @@ export default function TutorPage() {
   };
 
   return (
-    <div className="flex h-full w-full bg-background text-hexagon-text-primary overflow-hidden relative">
+    <div className="flex h-full w-full bg-[#0a0a0a] text-white overflow-hidden relative">
       
       {/* LEFT: Full Vertical 3D Teacher */}
-      <div className="w-[35%] h-full relative border-r border-hexagon-border bg-hexagon-surface">
+      <div className="w-[35%] h-full relative border-r border-[#1f1f1f] bg-[#111111]">
         <Canvas camera={{ position: [0, 0.2, 2.5], fov: 40 }} className="w-full h-full">
           <ambientLight intensity={0.8} />
           <directionalLight position={[2, 5, 2]} intensity={1.5} color="#ffffff" />
@@ -112,14 +112,14 @@ export default function TutorPage() {
         </Canvas>
 
         {/* Teacher Controls Overlay */}
-        <div className="absolute top-6 left-6 flex items-center justify-between right-6">
-          <div className="flex items-center gap-3 bg-background/60 backdrop-blur-md border border-hexagon-border px-4 py-2 rounded-full shadow-lg">
+        <div className="absolute top-6 left-6 flex items-center justify-between right-6 z-20 pointer-events-auto">
+          <div className="flex items-center gap-3 bg-background/60 backdrop-blur-md border border-[#1f1f1f] px-4 py-2 rounded-full shadow-lg">
             <div className={`w-2.5 h-2.5 rounded-full ${teacherState !== 'idle' ? 'bg-hexagon-accent animate-pulse' : 'bg-hexagon-text-secondary'}`} />
             <span className="text-sm font-semibold tracking-wide">{name}</span>
           </div>
           <button 
             onClick={() => setShowSelector(true)}
-            className="bg-background/60 backdrop-blur-md border border-hexagon-border px-3 py-2 rounded-full hover:bg-hexagon-surface transition-colors flex items-center gap-2 text-sm font-medium"
+            className="bg-background/60 backdrop-blur-md border border-[#1f1f1f] px-3 py-2 rounded-full hover:bg-[#111111] transition-colors flex items-center gap-2 text-sm font-medium"
           >
             <UserCircle2 className="w-4 h-4" /> Change Tutor
           </button>
@@ -142,10 +142,10 @@ export default function TutorPage() {
         <div className="h-48 flex gap-6 shrink-0">
           
           {/* Captions/Subtitle Box */}
-          <div className="flex-1 bg-hexagon-surface border border-hexagon-border rounded-3xl p-6 flex flex-col justify-center relative overflow-hidden">
+          <div className="flex-1 bg-[#111111] border border-[#1f1f1f] rounded-3xl p-6 flex flex-col justify-center relative overflow-hidden">
             <div className="absolute top-4 left-4 flex items-center gap-2">
-               <Mic className={`w-4 h-4 ${teacherState !== 'idle' && teacherState !== 'listening' ? 'text-hexagon-accent animate-pulse' : 'text-hexagon-text-secondary'}`} />
-               <span className="text-xs font-semibold text-hexagon-text-secondary uppercase tracking-wider">Transcripts</span>
+               <Mic className={`w-4 h-4 ${teacherState !== 'idle' && teacherState !== 'listening' ? 'text-hexagon-accent animate-pulse' : 'text-gray-400'}`} />
+               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Transcripts</span>
             </div>
             <p className="text-2xl font-medium text-center leading-relaxed mt-4">
               {caption}
@@ -153,10 +153,10 @@ export default function TutorPage() {
           </div>
 
           {/* Secondary Chat / Input Area */}
-          <div className="w-1/3 bg-hexagon-surface border border-hexagon-border rounded-3xl p-4 flex flex-col">
+          <div className="w-1/3 bg-[#111111] border border-[#1f1f1f] rounded-3xl p-4 flex flex-col">
              <div className="flex-1 overflow-y-auto mb-4 space-y-2 scrollbar-hide flex flex-col justify-end">
                 {messages.slice(-3).map((m, i) => (
-                  <div key={i} className="bg-[#111] p-3 rounded-2xl text-sm border border-hexagon-border ml-auto max-w-[90%]">
+                  <div key={i} className="bg-[#111] p-3 rounded-2xl text-sm border border-[#1f1f1f] ml-auto max-w-[90%]">
                     {m.text}
                   </div>
                 ))}
@@ -168,7 +168,7 @@ export default function TutorPage() {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSend()}
                   placeholder="Reply to teacher..."
-                  className="w-full bg-[#111] border border-hexagon-border py-3 pl-4 pr-12 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors"
+                  className="w-full bg-[#111] border border-[#1f1f1f] py-3 pl-4 pr-12 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors"
                 />
                 <button 
                   onClick={handleSend}
@@ -190,22 +190,22 @@ export default function TutorPage() {
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-hexagon-surface border border-hexagon-border rounded-[2rem] p-8 w-[800px] shadow-2xl flex flex-col"
+              className="bg-[#111111] border border-[#1f1f1f] rounded-[2rem] p-8 w-[800px] shadow-2xl flex flex-col"
             >
               <h2 className="text-2xl font-bold mb-2">Select Your AI Tutor</h2>
-              <p className="text-hexagon-text-secondary mb-8">Choose the personality and teaching style that fits your learning journey.</p>
+              <p className="text-gray-400 mb-8">Choose the personality and teaching style that fits your learning journey.</p>
               
               <div className="grid grid-cols-2 gap-6 mb-8">
                 {/* ARIA */}
                 <button 
                   onClick={() => { updateProfile({ tutorGender: 'female' }); setShowSelector(false); }}
-                  className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all ${!isMale ? 'border-hexagon-accent bg-[#051510]' : 'border-hexagon-border bg-[#111] hover:border-gray-500'}`}
+                  className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all ${!isMale ? 'border-hexagon-accent bg-[#051510]' : 'border-[#1f1f1f] bg-[#111] hover:border-gray-500'}`}
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold">ARIA</h3>
                     {!isMale && <CheckCircle2 className="w-6 h-6 text-hexagon-accent" />}
                   </div>
-                  <p className="text-sm text-hexagon-text-secondary mb-4">Warm, thoughtful, patient, intelligent. Specializes in deep conceptual understanding and Socratic questioning.</p>
+                  <p className="text-sm text-gray-400 mb-4">Warm, thoughtful, patient, intelligent. Specializes in deep conceptual understanding and Socratic questioning.</p>
                   <div className="mt-auto flex flex-wrap gap-2">
                     <span className="text-xs px-2 py-1 bg-background rounded-md">Patient</span>
                     <span className="text-xs px-2 py-1 bg-background rounded-md">Socratic</span>
@@ -215,13 +215,13 @@ export default function TutorPage() {
                 {/* ALEX */}
                 <button 
                   onClick={() => { updateProfile({ tutorGender: 'male' }); setShowSelector(false); }}
-                  className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all ${isMale ? 'border-blue-500 bg-[#051015]' : 'border-hexagon-border bg-[#111] hover:border-gray-500'}`}
+                  className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all ${isMale ? 'border-blue-500 bg-[#051015]' : 'border-[#1f1f1f] bg-[#111] hover:border-gray-500'}`}
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold">ALEX</h3>
                     {isMale && <CheckCircle2 className="w-6 h-6 text-blue-500" />}
                   </div>
-                  <p className="text-sm text-hexagon-text-secondary mb-4">Confident, analytical, energetic, practical. Focuses on rapid problem solving and applied knowledge.</p>
+                  <p className="text-sm text-gray-400 mb-4">Confident, analytical, energetic, practical. Focuses on rapid problem solving and applied knowledge.</p>
                   <div className="mt-auto flex flex-wrap gap-2">
                     <span className="text-xs px-2 py-1 bg-background rounded-md">Analytical</span>
                     <span className="text-xs px-2 py-1 bg-background rounded-md">Energetic</span>
@@ -229,7 +229,7 @@ export default function TutorPage() {
                 </button>
               </div>
               
-              <button onClick={() => setShowSelector(false)} className="self-end px-6 py-2 bg-background border border-hexagon-border rounded-xl font-medium hover:bg-white/5 transition-colors">
+              <button onClick={() => setShowSelector(false)} className="self-end px-6 py-2 bg-background border border-[#1f1f1f] rounded-xl font-medium hover:bg-white/5 transition-colors">
                 Cancel
               </button>
             </motion.div>

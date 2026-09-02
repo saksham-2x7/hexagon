@@ -23,7 +23,16 @@ export default function ProceduralAvatar({ lookAtBoard = false }: ProceduralAvat
   const { scene, animations } = useGLTF(modelUrl);
   
   // Clone scene so multiple instances don't share bones or materials
-  const clonedScene = useMemo(() => scene.clone(), [scene, modelUrl]);
+  const clonedScene = useMemo(() => {
+    const s = scene.clone();
+    // Force scale explicitly
+    if (!isMale) {
+      s.scale.set(0.01, 0.01, 0.01);
+    } else {
+      s.scale.set(1, 1, 1);
+    }
+    return s;
+  }, [scene, modelUrl, isMale]);
   
   const headRef = useRef<THREE.Object3D | null>(null);
   const spineRef = useRef<THREE.Object3D | null>(null);
@@ -98,7 +107,7 @@ export default function ProceduralAvatar({ lookAtBoard = false }: ProceduralAvat
       <primitive 
         object={clonedScene} 
         position={[0, -1.4, 0]} 
-        scale={isMale ? 1 : 0.01}
+        scale={1}
       />
     </Suspense>
   );

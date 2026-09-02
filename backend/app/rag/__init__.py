@@ -12,13 +12,20 @@ from app.rag.chunker import (
     DocumentChunk,
     SemanticChunker,
 )
+from app.rag.vector_store import (
+    LocalDenseEmbeddingEngine,
+    QueryResult,
+    VectorStore,
+)
 from app.rag.exceptions import (
     ChunkingError,
     CorruptedFileError,
     DocumentProcessingError,
+    EmbeddingError,
     EmptyDocumentError,
     FileAccessError,
     UnsupportedFileTypeError,
+    VectorStoreError,
 )
 
 __all__ = [
@@ -28,10 +35,15 @@ __all__ = [
     "SemanticChunker",
     "DocumentChunk",
     "ChunkedDocument",
+    "VectorStore",
+    "LocalDenseEmbeddingEngine",
+    "QueryResult",
     "DocumentProcessingError",
     "UnsupportedFileTypeError",
     "CorruptedFileError",
     "EmptyDocumentError",
     "FileAccessError",
     "ChunkingError",
+    "VectorStoreError",
+    "EmbeddingError",
 ]

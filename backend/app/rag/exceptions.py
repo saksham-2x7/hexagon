@@ -1,5 +1,6 @@
 """
-Custom domain exceptions for document processing, text extraction, and chunking in the RAG pipeline.
+Custom domain exceptions for document processing, text extraction, chunking,
+embedding generation, and vector storage in the RAG pipeline.
 """
 
 class DocumentProcessingError(Exception):
@@ -29,4 +30,14 @@ class FileAccessError(DocumentProcessingError):
 
 class ChunkingError(DocumentProcessingError):
     """Raised when an error occurs during document chunking or metadata splitting."""
+    pass
+
+
+class VectorStoreError(DocumentProcessingError):
+    """Raised when an error occurs in the vector database or persistence layer."""
+    pass
+
+
+class EmbeddingError(DocumentProcessingError):
+    """Raised when an error occurs during embedding vector generation."""
     pass

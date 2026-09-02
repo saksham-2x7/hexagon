@@ -64,7 +64,7 @@ export default function AITeacherPiP() {
           core: 'bg-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.6)] scale-90',
           speed: 8
         };
-      case 'guiding':
+      case 'thinking':
         return {
           bg: 'from-amber-500/20 to-orange-500/10',
           core: 'bg-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-100',

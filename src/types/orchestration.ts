@@ -1,4 +1,4 @@
-export type RepresentationId = 'webgl' | 'node' | 'graph' | 'timeline' | 'diagram' | 'manipulation' | 'text';
+export type RepresentationId = 'webgl' | 'node' | 'graph' | 'timeline' | 'diagram' | 'manipulation' | 'text' | 'code';
 export type LessonPhase = 'Explain' | 'Hypothesize' | 'Construct' | 'Observe' | 'Resolve' | 'Question' | 'Evaluate';
 
 export interface AIIntentState {

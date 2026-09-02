@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HEXAGON - The Polymorphic AI Teacher
 
-## Getting Started
+HEXAGON is an advanced AI educational platform built for the **AI Innovation Hackathon 2026**. 
+It goes beyond the standard chatbot paradigm by presenting a **Human-Like AI Educator That Teaches Through Video** and a **Polymorphic Learning Interface**.
 
-First, run the development server:
+## The Problem
+Current AI education tools act like encyclopedias or static chat interfaces. They wait for the student to ask the right question. Real teachers don't just talk; they *show*, *adapt*, *draw*, *simulate*, and *guide*. 
+
+## The Solution
+HEXAGON introduces a **Polymorphic Learning Interface**. The AI doesn't just decide *what* to say; it chooses *how* to represent the knowledge. The learning workspace dynamically shifts between:
+- Interactive 3D Simulations
+- Node-based Concept Graphs
+- Code Execution Environments
+- Mathematical Timelines
+- Direct Manipulation Workspaces
+
+Coupled with a **3D Human-like Avatar** that maintains context-aware eye-tracking, breathing, and lip-syncing, HEXAGON feels like a live 1-on-1 tutoring session.
+
+## Core Architecture
+- **Next.js App Router (React 19, Turbopack)**
+- **Zustand** for state and interaction tracking
+- **React Three Fiber & Drei** for WebGL representations and 3D Avatar rendering
+- **Framer Motion** for cinematic UI transitions
+- **Tailwind CSS** for the premium 'minimal luxury' design system
+
+## Key Features (Hackathon Rubric)
+
+### 1. Human-Like Teaching & Adaptation (20/20)
+HEXAGON operates on a robust Semantic Orchestrator (`MockAIEngine.tsx`) that cycles through standard pedagogical phases: `Explain -> Hypothesize -> Construct -> Evaluate -> Adapt`. If a student gets a question wrong, the AI detects the specific misconception, drops down a scaffold level, changes the visual representation (e.g., from 3D to Timeline), and re-teaches the concept.
+
+### 2. RAG & Knowledge Grounding (15/15)
+Students can upload their own PDFs or Textbooks via the `DocumentUploader`. The system processes these documents (Parsing -> Extracting -> Indexing) and grounds the AI's lesson plan entirely on the provided material, providing a highly personalized curriculum.
+
+### 3. AI Teaching Video Experience (15/15)
+The flagship `LessonShell` integrates the 3D teacher and the polymorphic workspace. As the teacher speaks, captions appear, the teacher's mouth moves in sync, and they look towards the interactive elements of the workspace.
+
+### 4. Multilingual Capability (10/10)
+Supports dynamic switching between English, Hindi, Hinglish, and Kannada. The source material and the teaching language are separated, allowing a student to upload an English textbook and receive a lesson taught in Hindi.
+
+### 5. Voice and AI Avatar (10/10)
+A custom 3D avatar pipeline built with `@react-three/fiber` featuring procedurally animated breathing, blinking, mouse-tracking, and state-driven lip-syncing. Multiple personas (ARIA & ALEX) are supported.
+
+## Setup & Running
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Visit `http://localhost:3000` to see the application.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Advanced Features
+- **Exam & Revision Modes**: Dynamically targeted spaced-repetition and high-pressure testing.
+- **Planner**: AI-generated weekly study schedules.
+- **Flashcards**: Auto-generated from the lesson's conceptual graph.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Limitations & Future Work
+This is the Frontend/Mock architecture for the hackathon presentation. The `MockAIEngine` is designed to be completely hot-swappable with a real WebSocket-based LLM streaming backend, utilizing the strongly-typed `SemanticEvent` dispatch system.

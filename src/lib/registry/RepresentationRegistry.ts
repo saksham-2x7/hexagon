@@ -32,6 +32,10 @@ const registry: Record<string, RepresentationEntry> = {
     metadata: { id: 'manipulation', name: 'Direct Manipulation', description: 'Interactive drag-and-drop workspace', capabilities: ['drag', 'drop', 'assemble'] },
     component: dynamic(() => import('../../components/representations/ManipulationRepresentation'), { ssr: false })
   },
+  code: {
+    metadata: { id: 'code', name: 'Code Demonstration', description: 'Code execution and architecture diagram', capabilities: ['read', 'scroll', 'execute'] },
+    component: dynamic(() => import('../../components/representations/CodeRepresentation'), { ssr: false })
+  },
   text: {
     metadata: { id: 'text', name: 'Structured Text', description: 'Textual explanation fallback', capabilities: ['read', 'scroll'] },
     component: dynamic(() => import('../../components/representations/TextRepresentation'), { ssr: false })

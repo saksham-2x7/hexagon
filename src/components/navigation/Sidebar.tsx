@@ -1,160 +1,90 @@
 "use client";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Home, MessageSquare, BookOpen, Library, TrendingUp, Layers, Calendar, Settings, Brain } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { 
-  Home, 
-  MessageSquare, 
-  BookOpen, 
-  Library, 
-  BarChart2, 
-  Settings, 
-  Layers, 
-  Calendar,
-  LogOut,
-  ChevronRight,
-  Flame,
-  Plus
-} from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-
-const navItems = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/tutor", label: "AI Tutor", icon: MessageSquare },
-  { href: "/learning", label: "My Learning", icon: BookOpen },
-  { href: "/library", label: "Library", icon: Library },
-  { href: "/progress", label: "Progress", icon: BarChart2 },
-  { href: "/flashcards", label: "Flashcards", icon: Layers },
-  { href: "/planner", label: "Planner", icon: Calendar },
+const MAIN_LINKS = [
+  { name: 'Home', href: '/home', icon: Home },
+  { name: 'AI Tutor', href: '/tutor', icon: MessageSquare },
+  { name: 'My Learning', href: '/learning', icon: BookOpen },
+  { name: 'Library', href: '/library', icon: Library },
 ];
 
-export function Sidebar() {
+const STUDY_LINKS = [
+  { name: 'Progress', href: '/progress', icon: TrendingUp },
+  { name: 'Flashcards', href: '/flashcards', icon: Layers },
+  { name: 'Planner', href: '/planner', icon: Calendar },
+];
+
+export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { profile, logout } = useAuthStore();
-  const [profileOpen, setProfileOpen] = useState(false);
+  const { profile } = useAuthStore();
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
-
-  const initials = profile?.name
-    ? profile.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
+  const renderLinks = (links: any[]) => (
+    <div className="space-y-1">
+      {links.map((link) => {
+        const active = pathname.startsWith(link.href);
+        const Icon = link.icon;
+        return (
+          <Link
+            key={link.name}
+            href={link.href}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              active 
+                ? 'bg-hexagon-surface-hover text-hexagon-accent' 
+                : 'text-hexagon-text-secondary hover:text-hexagon-text-primary hover:bg-hexagon-surface-hover'
+            }`}
+          >
+            <Icon className={`w-4 h-4 ${active ? 'text-hexagon-accent' : ''}`} />
+            {link.name}
+          </Link>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <aside className="w-64 border-r border-hexagon-border bg-hexagon-surface/50 backdrop-blur-xl h-full flex flex-col pt-8 pb-6 px-4 relative">
-      {/* Logo */}
-      <Link href="/home" className="flex items-center gap-3 px-2 mb-8 group">
-        <div className="w-8 h-8 rounded-lg bg-hexagon-accent flex items-center justify-center text-black font-bold text-sm group-hover:scale-105 transition-transform">
-          H
+    <aside className="w-64 h-full bg-hexagon-dark border-r border-hexagon-border flex flex-col">
+      <div className="p-6 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-hexagon-accent flex items-center justify-center">
+          <Brain className="w-5 h-5 text-black" />
         </div>
-        <span className="text-xl font-semibold tracking-tight text-hexagon-text-primary">
-          HEXAGON
-        </span>
-      </Link>
+        <span className="font-bold text-lg tracking-widest text-hexagon-text-primary">HEXAGON</span>
+      </div>
 
-      {/* New Learning CTA */}
-      <Link 
-        href="/setup" 
-        className="flex items-center gap-2 px-3 py-2.5 mb-4 rounded-lg border border-hexagon-accent/30 bg-hexagon-accent/5 text-hexagon-accent text-sm font-medium hover:bg-hexagon-accent/10 transition-colors"
-      >
-        <Plus className="w-4 h-4" />
-        New Learning
-      </Link>
+      <div className="flex-1 px-4 overflow-y-auto space-y-8 pb-6">
+        <div>
+          <h4 className="text-xs font-semibold text-hexagon-text-secondary/60 uppercase tracking-wider mb-3 px-3">Overview</h4>
+          {renderLinks(MAIN_LINKS)}
+        </div>
+        
+        <div>
+          <h4 className="text-xs font-semibold text-hexagon-text-secondary/60 uppercase tracking-wider mb-3 px-3">Study Tools</h4>
+          {renderLinks(STUDY_LINKS)}
+        </div>
+      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-0.5">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={twMerge(
-                clsx(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                  isActive
-                    ? "bg-hexagon-accent/10 text-hexagon-accent"
-                    : "text-hexagon-text-secondary hover:text-hexagon-text-primary hover:bg-hexagon-surface-hover"
-                )
-              )}
-            >
-              <item.icon className={clsx("w-4.5 h-4.5 flex-shrink-0", isActive ? "text-hexagon-accent" : "")} />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Bottom */}
-      <div className="pt-4 border-t border-hexagon-border space-y-0.5">
-        <Link
-          href="/settings"
-          className={twMerge(
-            clsx(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-              pathname.startsWith("/settings")
-                ? "bg-hexagon-accent/10 text-hexagon-accent"
-                : "text-hexagon-text-secondary hover:text-hexagon-text-primary hover:bg-hexagon-surface-hover"
-            )
-          )}
+      <div className="p-4 border-t border-hexagon-border">
+        <Link 
+          href="/profile"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-hexagon-surface-hover transition-colors mb-2"
         >
-          <Settings className="w-4.5 h-4.5 flex-shrink-0" />
+          <div className="w-8 h-8 rounded-full bg-hexagon-accent/20 flex items-center justify-center text-hexagon-accent text-xs font-bold uppercase">
+            {profile?.name?.charAt(0) || 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-hexagon-text-primary truncate">{profile?.name || 'User'}</p>
+            <p className="text-xs text-hexagon-text-secondary truncate">{profile?.email || 'user@example.com'}</p>
+          </div>
+        </Link>
+        <Link 
+          href="/settings"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-hexagon-text-secondary hover:text-hexagon-text-primary hover:bg-hexagon-surface-hover transition-colors"
+        >
+          <Settings className="w-4 h-4" />
           Settings
         </Link>
-
-        {/* Profile / User */}
-        <div className="relative">
-          <button
-            onClick={() => setProfileOpen(!profileOpen)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-hexagon-text-secondary hover:text-hexagon-text-primary hover:bg-hexagon-surface-hover"
-          >
-            <div className="w-7 h-7 rounded-full bg-hexagon-accent/20 border border-hexagon-accent/30 flex items-center justify-center text-hexagon-accent font-bold text-xs flex-shrink-0">
-              {initials}
-            </div>
-            <div className="flex-1 text-left overflow-hidden">
-              <p className="text-xs font-medium text-hexagon-text-primary truncate">{profile?.name || "Guest"}</p>
-              {profile?.streakDays ? (
-                <p className="text-[10px] text-hexagon-text-secondary flex items-center gap-1">
-                  <Flame className="w-2.5 h-2.5 text-orange-400" /> {profile.streakDays} day streak
-                </p>
-              ) : null}
-            </div>
-            <ChevronRight className={clsx("w-3.5 h-3.5 flex-shrink-0 transition-transform", profileOpen ? "rotate-90" : "")} />
-          </button>
-
-          <AnimatePresence>
-            {profileOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                className="absolute bottom-full mb-2 left-0 right-0 bg-hexagon-surface border border-hexagon-border rounded-xl shadow-xl overflow-hidden z-50"
-              >
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-hexagon-text-primary hover:bg-hexagon-surface-hover transition-colors"
-                  onClick={() => setProfileOpen(false)}
-                >
-                  View Profile
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/5 transition-colors border-t border-hexagon-border"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
       </div>
     </aside>
   );

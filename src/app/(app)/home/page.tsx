@@ -1,10 +1,10 @@
 "use client";
-
 import { motion } from "framer-motion";
 import { Play, Sparkles, Clock, Flame, Target, TrendingUp, BookOpen, ArrowRight, Mic } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import DocumentUploader from "../../../components/home/DocumentUploader";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const EXAMPLE_PROMPTS = [
@@ -18,12 +18,11 @@ const EXAMPLE_PROMPTS = [
 const RECENT_COURSES = [
   { title: "Neural Networks - Complete Course", subject: "Computer Science", progress: 34, time: "~1h 20m left", href: "/lesson/neural-networks-1", color: "bg-blue-500/20 text-blue-400", border: "border-blue-500/20" },
   { title: "Quantum Mechanics Fundamentals", subject: "Physics", progress: 72, time: "~30m left", href: "/lesson/quantum-1", color: "bg-purple-500/20 text-purple-400", border: "border-purple-500/20" },
-  { title: "Advanced TypeScript Patterns", subject: "Programming", progress: 15, time: "~2h left", href: "/lesson/typescript-1", color: "bg-orange-500/20 text-orange-400", border: "border-orange-500/20" },
 ];
 
 const RECOMMENDATIONS = [
-  { title: "Backpropagation Deep Dive", reason: "You struggled with this last session", subject: "Computer Science" },
-  { title: "Gradient Descent Visualization", reason: "Builds on your Neural Networks progress", subject: "Mathematics" },
+  { title: "Backpropagation in depth", reason: "Based on your recent struggle" },
+  { title: "Newton's First Law", reason: "Because you started physics" }
 ];
 
 export default function HomePage() {
@@ -35,13 +34,11 @@ export default function HomePage() {
 
   const [greeting, setGreeting] = useState('');
 
-  // Compute greeting on client after mount to avoid hydration mismatch
   useEffect(() => {
     const h = new Date().getHours();
     let g = 'Good evening';
     if (h < 12) g = 'Good morning';
     else if (h < 17) g = 'Good afternoon';
-    // Defer state update to avoid sync setState warning
     setTimeout(() => setGreeting(g), 0);
   }, []);
 
@@ -112,21 +109,16 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-        <div className="flex gap-2 mt-3 flex-wrap">
-          {EXAMPLE_PROMPTS.slice(0, 4).map(p => (
-            <button key={p} onClick={() => { setQuery(p); inputRef.current?.focus(); }} className="text-xs px-3 py-1.5 rounded-full border border-hexagon-border bg-hexagon-surface text-hexagon-text-secondary hover:text-hexagon-text-primary hover:border-hexagon-accent/30 transition-colors">
-              {p}
-            </button>
-          ))}
-        </div>
       </motion.div>
+      
+      <DocumentUploader />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-hexagon-text-primary">Continue Learning</h2>
           <Link href="/learning" className="text-sm text-hexagon-accent hover:underline flex items-center gap-1">View all <ArrowRight className="w-3.5 h-3.5" /></Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {RECENT_COURSES.map(course => (
             <Link key={course.title} href={course.href} className="block group">
               <div className={`bg-hexagon-surface border ${course.border} rounded-2xl p-6 transition-all duration-200 hover:border-hexagon-accent/40 hover:-translate-y-1 shadow-sm`}>

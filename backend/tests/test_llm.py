@@ -14,14 +14,14 @@ class LessonConcept(BaseModel):
     difficulty: int = Field(..., description="Difficulty level from 1 to 10")
 
 def main():
-    system_prompt = "You are an expert AI teacher."
+    system_instruction = "You are an expert AI teacher."
     user_prompt = "Explain the concept of 'Gravity' to a beginner."
 
-    print("--- Testing LLM Client ---")
+    print("--- Testing Gemini LLM Client ---")
     try:
         # 2. Call the function
         result = generate_structured_output(
-            system_prompt=system_prompt,
+            system_instruction=system_instruction,
             user_prompt=user_prompt,
             schema=LessonConcept
         )

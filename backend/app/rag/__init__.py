@@ -17,6 +17,12 @@ from app.rag.vector_store import (
     QueryResult,
     VectorStore,
 )
+from app.rag.retriever import (
+    GroundedContext,
+    GroundedSource,
+    RAGRetriever,
+    retrieve_grounded_context,
+)
 from app.rag.exceptions import (
     ChunkingError,
     CorruptedFileError,
@@ -24,6 +30,7 @@ from app.rag.exceptions import (
     EmbeddingError,
     EmptyDocumentError,
     FileAccessError,
+    RetrievalError,
     UnsupportedFileTypeError,
     VectorStoreError,
 )
@@ -38,6 +45,10 @@ __all__ = [
     "VectorStore",
     "LocalDenseEmbeddingEngine",
     "QueryResult",
+    "RAGRetriever",
+    "GroundedContext",
+    "GroundedSource",
+    "retrieve_grounded_context",
     "DocumentProcessingError",
     "UnsupportedFileTypeError",
     "CorruptedFileError",
@@ -46,4 +57,5 @@ __all__ = [
     "ChunkingError",
     "VectorStoreError",
     "EmbeddingError",
+    "RetrievalError",
 ]

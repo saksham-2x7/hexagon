@@ -1,6 +1,6 @@
 """
 Custom domain exceptions for document processing, text extraction, chunking,
-embedding generation, and vector storage in the RAG pipeline.
+embedding generation, vector storage, and RAG retrieval in the RAG pipeline.
 """
 
 class DocumentProcessingError(Exception):
@@ -40,4 +40,9 @@ class VectorStoreError(DocumentProcessingError):
 
 class EmbeddingError(DocumentProcessingError):
     """Raised when an error occurs during embedding vector generation."""
+    pass
+
+
+class RetrievalError(DocumentProcessingError):
+    """Raised when an error occurs during grounded context retrieval."""
     pass

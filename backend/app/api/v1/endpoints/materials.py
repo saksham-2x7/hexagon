@@ -27,7 +27,7 @@ async def upload_material(
     
     metadata = MaterialMetadata(
         student_id=student_id,
-        filename=file.filename,
+        filename=file.filename or "unknown",
         file_type=file.content_type or "application/octet-stream",
         status=ProcessingStatus.PENDING
     )

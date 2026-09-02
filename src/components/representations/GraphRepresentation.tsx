@@ -3,23 +3,34 @@ import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
 export default function GraphRepresentation({ context }: RepresentationProps) {
+  // Mock Data for Loss Curve
+  const points = Array.from({ length: 50 }, (_, i) => ({
+    x: i * (100 / 50),
+    y: Math.max(10, 90 * Math.exp(-0.1 * i) + Math.random() * 5)
+  }));
+
+  const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-black">
-      <div className="w-2/3 h-2/3 border-l-2 border-b-2 border-white/20 relative">
-        <motion.div 
-          className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-hexagon-accent to-blue-500 rounded-full origin-left"
-          initial={{ scaleX: 0, y: -20, rotate: -30 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          style={{ bottom: '20%', width: '100%', rotate: '-30deg', transformOrigin: 'bottom left' }}
-        />
-        <div className="absolute -bottom-6 right-0 text-white/50 font-mono text-xs">x (Time)</div>
-        <div className="absolute top-0 -left-6 text-white/50 font-mono text-xs -rotate-90 origin-right">y (Energy)</div>
-        {/* Grid lines */}
-        <div className="absolute inset-0 grid grid-cols-4 grid-rows-4 pointer-events-none">
-          {[...Array(16)].map((_, i) => (
-            <div key={i} className="border-t border-r border-white/5"></div>
-          ))}
+    <div className="w-full h-full flex flex-col items-center justify-center bg-background p-12">
+      <div className="max-w-3xl w-full">
+        <h3 className="text-2xl font-bold mb-8 text-center">Training Loss Over Time</h3>
+        <div className="relative w-full aspect-[2/1] border-l-2 border-b-2 border-white/20 p-4">
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <motion.path
+              d={pathData}
+              fill="none"
+              stroke="var(--color-primary)"
+              strokeWidth="1.5"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 2, ease: "easeInOut" }}
+              style={{ filter: 'drop-shadow(0px 0px 8px rgba(0,255,157,0.5))' }}
+            />
+          </svg>
+          {/* Axis Labels */}
+          <div className="absolute -left-12 top-1/2 -translate-y-1/2 -rotate-90 text-sm font-mono text-muted-foreground">Loss</div>
+          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm font-mono text-muted-foreground">Epochs</div>
         </div>
       </div>
     </div>

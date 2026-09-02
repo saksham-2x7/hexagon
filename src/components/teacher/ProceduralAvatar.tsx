@@ -24,15 +24,9 @@ export default function ProceduralAvatar({ lookAtBoard = false }: ProceduralAvat
   const clonedScene = useMemo(() => {
     const s = scene.clone();
     
-    // The female model is 100x bigger natively, we must hard-scale it.
-    // Do not use Box3 because SkinnedMesh bounds are 0 until bound.
-    if (!isMale) {
-      s.scale.set(0.01, 0.01, 0.01);
-      s.position.y = -1.4; // 0.01 scale puts her feet at Y=0 locally, shift down
-    } else {
-      s.scale.set(1, 1, 1);
-      s.position.y = -1.4; 
-    }
+    // Scale is already baked into female.glb on disk!
+    s.scale.set(1, 1, 1);
+    s.position.y = -1.4; 
     
     return s;
   }, [scene, modelUrl, isMale]);

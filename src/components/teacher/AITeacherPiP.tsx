@@ -1,8 +1,10 @@
 'use client';
+
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import { Mic, MicOff, Maximize2, Minimize2, MessageSquare } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Mic, MicOff, Maximize2, Minimize2, MessageSquare, Eye } from 'lucide-react';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
+// Removing TeacherState import since we don't strictly need the enum here if we just use strings or we can keep it if used.
 import { TeacherState } from '../../types/teacher';
 
 export default function AITeacherPiP() {
@@ -10,12 +12,15 @@ export default function AITeacherPiP() {
   const [isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showCaptions, setShowCaptions] = useState(true);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const lessonPhase = useAIIntentStore(state => state.lessonPhase);
-  // Mocking teacher state for now, would be driven by store in real app
   const teacherState = useAIIntentStore(state => state.teacherState);
   const captionText = useAIIntentStore(state => state.teacherMessage);
 
+  // Audio Waveform Animation
   useEffect(() => {
     const interval = setInterval(() => {
       setHeights((prev) => 
@@ -25,26 +30,80 @@ export default function AITeacherPiP() {
     return () => clearInterval(interval);
   }, [isMuted, teacherState]);
 
+  // Gaze Targeting (Track Mouse)
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      // Calculate normalized direction (-1 to 1)
+      const x = (e.clientX - centerX) / window.innerWidth;
+      const y = (e.clientY - centerY) / window.innerHeight;
+      
+      setMousePos({ x, y });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const getPresenceStyles = () => {
+    switch (teacherState) {
+      case 'speaking':
+      case 'teaching':
+        return {
+          bg: 'from-hexagon-accent/20 to-hexagon-accent/5',
+          core: 'bg-hexagon-accent shadow-[0_0_20px_rgba(0,255,157,0.8)] scale-110',
+          speed: 3
+        };
+      case 'listening':
+        return {
+          bg: 'from-blue-500/20 to-purple-500/10',
+          core: 'bg-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.6)] scale-90',
+          speed: 8
+        };
+      case 'guiding':
+        return {
+          bg: 'from-amber-500/20 to-orange-500/10',
+          core: 'bg-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-100',
+          speed: 5
+        };
+      default:
+        return {
+          bg: 'from-white/10 to-transparent',
+          core: 'bg-white/50 scale-100',
+          speed: 10
+        };
+    }
+  };
+
+  const presence = getPresenceStyles();
+
   return (
-    <div className="absolute bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
+    <div className="absolute bottom-8 right-8 z-50 flex flex-col items-end gap-4 pointer-events-none">
       
       {/* Captions */}
       <AnimatePresence>
         {showCaptions && captionText && (
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="max-w-[400px] bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl pointer-events-auto"
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="max-w-[420px] bg-hexagon-surface/90 backdrop-blur-2xl border border-hexagon-border rounded-2xl p-5 shadow-2xl pointer-events-auto relative overflow-hidden"
           >
-            <p className="text-white/90 text-sm leading-relaxed font-medium">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-hexagon-accent to-transparent opacity-50" />
+            <p className="text-hexagon-text-primary text-sm leading-relaxed font-medium">
               &quot;{captionText}&quot;
             </p>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Main PiP Container */}
       <motion.div 
+        ref={containerRef}
         initial={{ opacity: 0, y: 20 }}
         animate={{ 
           opacity: 1, 
@@ -52,69 +111,85 @@ export default function AITeacherPiP() {
           width: isExpanded ? 400 : 288,
           height: isExpanded ? 300 : 192
         }}
-        className="rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/15 bg-card backdrop-blur-3xl flex flex-col pointer-events-auto relative"
+        className="rounded-3xl overflow-hidden shadow-2xl border border-hexagon-border bg-hexagon-surface backdrop-blur-3xl flex flex-col pointer-events-auto relative group"
       >
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
         <div className="absolute top-3 right-3 flex gap-2 z-20">
           <motion.button 
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setShowCaptions(!showCaptions)}
-            className={`w-8 h-8 rounded-full border backdrop-blur-md flex items-center justify-center transition-colors ${showCaptions ? 'bg-primary/20 border-primary/50 text-primary' : 'bg-black/40 border-white/20 text-white'}`}
+            className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${showCaptions ? 'bg-hexagon-accent/20 border-hexagon-accent/50 text-hexagon-accent' : 'bg-black/40 border-hexagon-border text-hexagon-text-secondary hover:text-hexagon-text-primary'}`}
             aria-label="Toggle Captions"
           >
             <MessageSquare size={14} />
           </motion.button>
           <motion.button 
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsMuted(!isMuted)}
-            className="w-8 h-8 rounded-full bg-black/40 border border-white/20 backdrop-blur-md flex items-center justify-center text-white transition-colors hover:bg-white/10"
-            aria-label={isMuted ? "Unmute" : "Mute"}
+            className="w-8 h-8 rounded-full bg-black/40 border border-hexagon-border flex items-center justify-center text-hexagon-text-secondary transition-colors hover:text-hexagon-text-primary hover:bg-white/10"
           >
             {isMuted ? <MicOff size={14} /> : <Mic size={14} />}
           </motion.button>
           <motion.button 
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-8 h-8 rounded-full bg-black/40 border border-white/20 backdrop-blur-md flex items-center justify-center text-white transition-colors hover:bg-white/10"
-            aria-label={isExpanded ? "Minimize" : "Expand"}
+            className="w-8 h-8 rounded-full bg-black/40 border border-hexagon-border flex items-center justify-center text-hexagon-text-secondary transition-colors hover:text-hexagon-text-primary hover:bg-white/10"
           >
             {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </motion.button>
         </div>
 
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-          <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${teacherState === 'speaking' ? 'bg-primary' : 'bg-white/50'}`} />
-          <span className="text-[10px] font-mono text-white/80 uppercase tracking-widest">{lessonPhase}</span>
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-hexagon-border">
+          <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${teacherState === 'speaking' ? 'bg-hexagon-accent' : 'bg-hexagon-text-secondary'}`} />
+          <span className="text-[10px] font-mono text-hexagon-text-secondary uppercase tracking-widest">{lessonPhase}</span>
         </div>
 
-        <div className="flex-1 relative flex items-center justify-center bg-black/40">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent"></div>
+        <div className="flex-1 relative flex items-center justify-center bg-black/20 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
-              key={lessonPhase}
+              key="avatar-core"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.1 }}
-              className="w-24 h-24 border border-white/10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-md relative overflow-hidden shadow-2xl"
+              className="w-28 h-28 border border-white/5 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-md relative shadow-2xl"
             >
-              {/* Holographic Avatar Core */}
+              {/* Outer Energy Ring */}
               <motion.div 
-                className={`absolute inset-0 bg-gradient-to-tr ${teacherState === 'speaking' ? 'from-primary/20 to-blue-500/20' : 'from-white/5 to-white/10'}`}
+                className={`absolute inset-0 bg-gradient-to-tr rounded-full opacity-60 blur-md ${presence.bg}`}
                 animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: teacherState === 'speaking' ? 4 : 10, ease: "linear" }}
+                transition={{ repeat: Infinity, duration: presence.speed, ease: "linear" }}
               />
-              <div className="w-12 h-12 bg-white/5 rounded-full border border-white/20 flex items-center justify-center z-10">
-                <div className={`w-4 h-4 rounded-full transition-all duration-500 ${teacherState === 'speaking' ? 'bg-primary shadow-[0_0_15px_rgba(0,255,157,1)] scale-110' : 'bg-white/50 scale-100'}`} />
+              
+              {/* Inner Structure */}
+              <div className="w-14 h-14 bg-white/5 rounded-full border border-white/10 flex items-center justify-center z-10 relative overflow-hidden">
+                <div className="absolute inset-0 border border-white/20 rounded-full scale-[0.8] opacity-50" />
+                
+                {/* The "Eye" / Core that follows mouse slightly */}
+                <motion.div 
+                  animate={{ 
+                    x: mousePos.x * 12, // Max 12px shift
+                    y: mousePos.y * 12
+                  }}
+                  transition={{ type: "spring", stiffness: 100, damping: 30 }}
+                  className={`w-5 h-5 rounded-full transition-all duration-500 flex items-center justify-center ${presence.core}`}
+                >
+                  <div className="w-2 h-2 bg-white/50 rounded-full blur-[1px]" />
+                </motion.div>
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
         
         {/* Audio Waveform Indicator */}
-        <div className="h-10 border-t border-white/5 flex items-center justify-center gap-1.5 px-4 bg-black/60">
+        <div className="h-10 border-t border-hexagon-border flex items-center justify-center gap-1.5 px-4 bg-black/40">
           {heights.map((h, i) => (
             <motion.div
               key={i}
-              className={`w-1 rounded-full ${teacherState === 'speaking' ? 'bg-primary' : 'bg-white/20'}`}
+              className={`w-1 rounded-full ${teacherState === 'speaking' ? 'bg-hexagon-accent' : 'bg-hexagon-text-secondary/50'}`}
               animate={{ height: `${h}%` }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             />

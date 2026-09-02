@@ -4,10 +4,11 @@ from .explanation_generator import generate_teaching_segment
 from .evaluation_service import generate_question, evaluate_answer, GeneratedQuestion
 
 class TeachingSession:
-    def __init__(self, topic: str, learner_level: str, time_available: int):
+    def __init__(self, topic: str, learner_level: str, time_available: int, teaching_language: str = "English"):
         self.topic = topic
         self.learner_level = learner_level
         self.time_available = time_available
+        self.teaching_language = teaching_language
         self.current_state = "INIT"
         self.current_node_index = 0
         
@@ -20,7 +21,7 @@ class TeachingSession:
     def advance(self, student_answer: Optional[str] = None) -> Dict[str, Any]:
         """The main loop the frontend calls to push the state machine forward."""
         if self.current_state == "INIT":
-            self.plan = generate_lesson_plan(self.topic, self.learner_level, self.time_available)
+            self.plan = generate_lesson_plan(self.topic, self.learner_level, self.time_available, self.teaching_language)
             self.current_state = "TEACHING"
             return {"status": "lesson_planned", "plan": self.plan.model_dump()}
 
@@ -30,12 +31,12 @@ class TeachingSession:
                 return self._generate_report()
 
             node = self.plan.nodes[self.current_node_index]
-            segment = generate_teaching_segment(node.model_dump(), self.learner_level)
+            segment = generate_teaching_segment(node.model_dump(), self.learner_level, self.teaching_language)
             
             payload = {"status": "teaching", "segment": segment.model_dump(), "concept": node.concept_name}
             
             if node.include_assessment_question:
-                self.current_question = generate_question(node.concept_name, self.learner_level)
+                self.current_question = generate_question(node.concept_name, self.learner_level, self.teaching_language)
                 payload["question"] = self.current_question.model_dump()
                 self.current_state = "WAITING_FOR_ANSWER"
             else:
@@ -54,7 +55,8 @@ class TeachingSession:
                 expected_answer=self.current_question.expected_ideal_answer,
                 student_answer=student_answer,
                 concept_context=node.concept_name,
-                learner_level=self.learner_level
+                learner_level=self.learner_level,
+                teaching_language=self.teaching_language
             )
             
             if eval_result.is_correct:
@@ -84,6 +86,7 @@ class TeachingSession:
             "status": "completed",
             "report": {
                 "topic": self.topic,
+                "teaching_language": self.teaching_language,
                 "strong_concepts": self.strong_concepts,
                 "weak_concepts": self.weak_concepts
             }
@@ -95,6 +98,7 @@ class TeachingSession:
             "topic": self.topic,
             "learner_level": self.learner_level,
             "time_available": self.time_available,
+            "teaching_language": self.teaching_language,
             "current_state": self.current_state,
             "current_node_index": self.current_node_index,
             "plan": self.plan.model_dump() if self.plan else None,
@@ -106,7 +110,12 @@ class TeachingSession:
     @classmethod
     def from_dict(cls, data: dict) -> "TeachingSession":
         """Deserializes session state from the database."""
-        session = cls(data["topic"], data["learner_level"], data["time_available"])
+        session = cls(
+            topic=data["topic"], 
+            learner_level=data["learner_level"], 
+            time_available=data["time_available"],
+            teaching_language=data.get("teaching_language", "English")
+        )
         session.current_state = data["current_state"]
         session.current_node_index = data["current_node_index"]
         if data.get("plan"): 

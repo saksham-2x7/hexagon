@@ -2,6 +2,7 @@ from typing import Optional, Dict, Any
 from .lesson_planner import generate_lesson_plan, LessonPlan
 from .explanation_generator import generate_teaching_segment
 from .evaluation_service import generate_question, evaluate_answer, GeneratedQuestion
+from .report_generator import generate_learning_report
 
 class TeachingSession:
     def __init__(self, topic: str, learner_level: str, time_available: int, teaching_language: str = "English"):
@@ -82,14 +83,10 @@ class TeachingSession:
             return self._generate_report()
 
     def _generate_report(self) -> Dict[str, Any]:
+        report = generate_learning_report(self.to_dict())
         return {
             "status": "completed",
-            "report": {
-                "topic": self.topic,
-                "teaching_language": self.teaching_language,
-                "strong_concepts": self.strong_concepts,
-                "weak_concepts": self.weak_concepts
-            }
+            "report": report.model_dump()
         }
 
     def to_dict(self) -> dict:

@@ -16,7 +16,7 @@ export default function SetupPage() {
     const profile: LearnerProfile = {
       topic,
       depthLevel: depth,
-      learningStyle: learningStyle as any,
+      learningStyle: learningStyle as LearnerProfile['learningStyle'],
       hasMaterials,
     };
     console.log("Learner Profile Generated:", profile);

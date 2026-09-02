@@ -16,14 +16,19 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
+import { motion } from 'framer-motion';
 
 // Custom Node Component
-const PremiumNode = ({ data }: { data: any }) => (
-  <div className="px-6 py-4 bg-gray-900/90 backdrop-blur-md border border-blue-500/50 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.2)] text-white font-medium text-sm min-w-[120px] text-center">
-    <Handle type="target" position={Position.Top} className="w-3 h-3 bg-blue-400 border-none" />
+const PremiumNode = ({ data }: { data: { label: string } }) => (
+  <motion.div 
+    whileHover={{ scale: 1.05, y: -4 }}
+    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+    className="bg-hexagon-surface backdrop-blur-md border-2 border-white/10 rounded-xl p-4 text-white shadow-lg transition-colors hover:border-hexagon-accent min-w-[140px] text-center font-medium"
+  >
+    <Handle type="target" position={Position.Top} className="w-3 h-3 bg-white border-none" />
     {data.label}
-    <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-purple-400 border-none" />
-  </div>
+    <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-hexagon-accent border-none" />
+  </motion.div>
 );
 
 const nodeTypes = {
@@ -36,7 +41,15 @@ const initialNodes: Node[] = [
   { id: 'C', type: 'premium', position: { x: 400, y: 300 }, data: { label: 'Electron Transport' } },
 ];
 
-const initialEdges: Edge[] = [];
+const initialEdges: Edge[] = [
+  { id: 'e1-2', source: 'A', target: 'B', animated: true, style: { stroke: 'rgba(255,255,255,0.6)', strokeWidth: 2, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' } },
+  { id: 'e1-3', source: 'A', target: 'C', animated: true, style: { stroke: 'rgba(255,255,255,0.6)', strokeWidth: 2, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' } },
+];
+
+const defaultEdgeOptions = {
+  animated: true,
+  style: { stroke: 'rgba(255,255,255,0.8)', strokeWidth: 2, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' },
+};
 
 export default function NodeCanvasRepresentation() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
@@ -55,7 +68,7 @@ export default function NodeCanvasRepresentation() {
 
   const onConnect = useCallback(
     (params: Connection) => {
-      setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#8b5cf6', strokeWidth: 2 } }, eds));
+      setEdges((eds) => addEdge(params, eds));
       if (params.source && params.target) {
         dispatchAction({
           type: 'NODE_CONNECTED',
@@ -68,7 +81,7 @@ export default function NodeCanvasRepresentation() {
   );
 
   return (
-    <div className="w-full h-full bg-black relative">
+    <div className="w-full h-full bg-transparent relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -76,11 +89,12 @@ export default function NodeCanvasRepresentation() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
         fitView
-        className="bg-gray-950"
+        className="bg-transparent"
       >
-        <Background color="#333" gap={20} size={1} />
-        <Controls className="!bg-gray-800 !border-gray-700 !fill-white" />
+        <Background color="rgba(255,255,255,0.1)" gap={20} size={1} />
+        <Controls className="!bg-hexagon-surface !border-white/10 !fill-white" />
       </ReactFlow>
     </div>
   );

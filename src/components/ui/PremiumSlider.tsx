@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 
 export default function PremiumSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (

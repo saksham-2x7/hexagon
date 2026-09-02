@@ -108,7 +108,7 @@ export default function TutorPage() {
           />
 
           <ContactShadows position={[0, -1.4, 0]} opacity={0.7} scale={10} blur={2} far={4} />
-          <OrbitControls enableZoom={true} minDistance={1.5} maxDistance={5} enablePan={false} minPolarAngle={Math.PI / 2.5} maxPolarAngle={Math.PI / 2} target={[0, -0.5, 0]} />
+          <OrbitControls enableZoom={true} minDistance={1.5} maxDistance={5} enablePan={false} minPolarAngle={Math.PI / 2.5} maxPolarAngle={Math.PI / 2} target={[0, 0.2, 0]} />
         </Canvas>
 
         {/* Teacher Controls Overlay */}

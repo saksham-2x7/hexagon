@@ -98,7 +98,7 @@ export default function ProceduralAvatar({ lookAtBoard = false }: ProceduralAvat
       <primitive 
         object={clonedScene} 
         position={[0, -1.4, 0]} 
-        scale={1}
+        scale={isMale ? 1 : 0.01}
       />
     </Suspense>
   );

@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
+  MiniMap,
   addEdge, 
   applyNodeChanges, 
   applyEdgeChanges,
@@ -93,8 +94,12 @@ export default function NodeCanvasRepresentation() {
         fitView
         className="bg-transparent"
       >
-        <Background color="rgba(255,255,255,0.1)" gap={20} size={1} />
-        <Controls className="!bg-hexagon-surface !border-white/10 !fill-white" />
+        <Background color="#00FF9D" gap={24} size={1} style={{ opacity: 0.1 }} />
+        <MiniMap nodeColor="#00FF9D" maskColor="rgba(0,0,0,0.7)" style={{ backgroundColor: '#050505', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem' }} />
+        <Controls 
+          style={{ display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: 'transparent', boxShadow: 'none', border: 'none' }} 
+          className="[&>button]:bg-hexagon-surface [&>button]:backdrop-blur-md [&>button]:border [&>button]:border-white/10 [&>button]:text-white [&>button]:rounded-md hover:[&>button]:text-hexagon-accent" 
+        />
       </ReactFlow>
     </div>
   );

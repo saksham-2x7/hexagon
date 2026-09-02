@@ -16,8 +16,18 @@ export default function LessonHUD() {
           </h2>
         </div>
         
-        {/* Progress/Mastery Bar */}
+        {/* Progress/Mastery Bar and Telemetry */}
         <div className="w-64 flex flex-col gap-2">
+          {/* Telemetry Status Indicator */}
+          <div className="flex items-center gap-2">
+            <motion.div 
+              className="w-1.5 h-1.5 bg-hexagon-accent rounded-full"
+              animate={{ opacity: [0.4, 1, 0.4] }} 
+              transition={{ repeat: Infinity, duration: 2 }} 
+            />
+            <span className="text-[10px] font-mono text-hexagon-accent tracking-widest">NEURAL SYNC ACTIVE</span>
+          </div>
+
           <div className="flex justify-between text-xs text-gray-400 font-medium">
             <span>MASTERY</span>
             <span className="text-hexagon-accent">72%</span>

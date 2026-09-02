@@ -2,10 +2,12 @@
 import { ReactNode } from 'react';
 import LessonHUD from './LessonHUD';
 import AITeacherPiP from '../avatar/AITeacherPiP';
+import CustomCursor from '../ui/CustomCursor';
 
 export default function LessonShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-black text-white overflow-hidden font-sans relative">
+      <CustomCursor />
       <main className="flex-1 h-full relative z-0">
         {children}
       </main>

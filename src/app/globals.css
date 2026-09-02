@@ -1,36 +1,41 @@
 @import "tailwindcss";
 
 @theme {
-  --color-border: hsl(0 0% 12%);
-  --color-input: hsl(0 0% 12%);
-  --color-ring: hsl(157 100% 50%);
-  --color-background: hsl(0 0% 2%);
-  --color-foreground: hsl(0 0% 98%);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
-  --color-primary: hsl(157 100% 50%);
-  --color-primary-foreground: hsl(0 0% 0%);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
 
-  --color-secondary: hsl(217 91% 60%);
-  --color-secondary-foreground: hsl(0 0% 100%);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
 
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 
-  --color-muted: hsl(0 0% 15%);
-  --color-muted-foreground: hsl(0 0% 64%);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
 
-  --color-accent: hsl(0 0% 12%);
-  --color-accent-foreground: hsl(0 0% 98%);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
-  --color-popover: hsl(0 0% 5%);
-  --color-popover-foreground: hsl(0 0% 98%);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
-  --color-card: hsl(0 0% 5%);
-  --color-card-foreground: hsl(0 0% 98%);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
 
-  --color-hexagon-dark: #050505;
-  --color-hexagon-surface: rgba(20, 20, 20, 0.6);
-  --color-hexagon-accent: #00FF9D;
+  /* Specific Hexagon Theme Colors */
+  --color-hexagon-bg: var(--hexagon-bg);
+  --color-hexagon-surface: var(--hexagon-surface);
+  --color-hexagon-surface-hover: var(--hexagon-surface-hover);
+  --color-hexagon-border: var(--hexagon-border);
+  --color-hexagon-text-primary: var(--hexagon-text-primary);
+  --color-hexagon-text-secondary: var(--hexagon-text-secondary);
+  --color-hexagon-accent: var(--hexagon-accent);
 
   --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-scanline: scanline 8s linear infinite;
@@ -46,15 +51,77 @@
 }
 
 @layer base {
+  :root {
+    --background: hsl(0 0% 98%);
+    --foreground: hsl(0 0% 5%);
+    --border: hsl(0 0% 90%);
+    --input: hsl(0 0% 90%);
+    --ring: hsl(157 100% 45%);
+    --primary: hsl(157 100% 45%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(217 91% 60%);
+    --secondary-foreground: hsl(0 0% 100%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --muted: hsl(0 0% 94%);
+    --muted-foreground: hsl(0 0% 45%);
+    --accent: hsl(0 0% 94%);
+    --accent-foreground: hsl(0 0% 5%);
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(0 0% 5%);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(0 0% 5%);
+
+    /* Light Theme Hexagon specific */
+    --hexagon-bg: #f8fafc;
+    --hexagon-surface: rgba(255, 255, 255, 0.7);
+    --hexagon-surface-hover: rgba(0, 0, 0, 0.04);
+    --hexagon-border: rgba(0, 0, 0, 0.08);
+    --hexagon-text-primary: #0f172a;
+    --hexagon-text-secondary: #64748b;
+    --hexagon-accent: #00b36b;
+  }
+
+  .dark {
+    --background: hsl(0 0% 2%);
+    --foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 12%);
+    --input: hsl(0 0% 12%);
+    --ring: hsl(157 100% 50%);
+    --primary: hsl(157 100% 50%);
+    --primary-foreground: hsl(0 0% 0%);
+    --secondary: hsl(217 91% 60%);
+    --secondary-foreground: hsl(0 0% 100%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --muted: hsl(0 0% 15%);
+    --muted-foreground: hsl(0 0% 64%);
+    --accent: hsl(0 0% 12%);
+    --accent-foreground: hsl(0 0% 98%);
+    --popover: hsl(0 0% 5%);
+    --popover-foreground: hsl(0 0% 98%);
+    --card: hsl(0 0% 5%);
+    --card-foreground: hsl(0 0% 98%);
+
+    /* Dark Theme Hexagon specific */
+    --hexagon-bg: #050505;
+    --hexagon-surface: rgba(20, 20, 20, 0.6);
+    --hexagon-surface-hover: rgba(255, 255, 255, 0.05);
+    --hexagon-border: rgba(255, 255, 255, 0.08);
+    --hexagon-text-primary: #ffffff;
+    --hexagon-text-secondary: rgba(255, 255, 255, 0.6);
+    --hexagon-accent: #00FF9D;
+  }
+
   *, ::before, ::after {
     border-color: var(--color-border);
   }
-}
 
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  overflow-x: hidden;
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    overflow-x: hidden;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -64,8 +131,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(150, 150, 150, 0.2);
   border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .scanline {

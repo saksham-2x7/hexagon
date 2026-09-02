@@ -1,38 +1,42 @@
 'use client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
-import WebGLRepresentation from '../representations/WebGLRepresentation';
-import NodeCanvasRepresentation from '../representations/NodeCanvasRepresentation';
+import { getRepresentation } from '../../lib/registry/RepresentationRegistry';
+import { Suspense } from 'react';
 
 export default function PolymorphicOrchestrator() {
   const activeRepresentation = useAIIntentStore((state) => state.activeRepresentation);
+  const repEntry = getRepresentation(activeRepresentation);
+
+  if (!repEntry) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-black text-white/50 font-mono text-sm">
+        [REPRESENTATION_NOT_FOUND: {activeRepresentation}]
+      </div>
+    );
+  }
+
+  const ActiveComponent = repEntry.component;
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black">
       <AnimatePresence mode="wait">
-        {activeRepresentation === 'webgl' ? (
-          <motion.div
-            key="webgl"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            <WebGLRepresentation />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="node"
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            <NodeCanvasRepresentation />
-          </motion.div>
-        )}
+        <motion.div
+          key={activeRepresentation}
+          initial={{ opacity: 0, scale: 0.98, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, scale: 1.02, filter: 'blur(10px)' }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0"
+        >
+          <Suspense fallback={
+            <div className="w-full h-full flex items-center justify-center text-hexagon-accent font-mono animate-pulse">
+              INITIALIZING {activeRepresentation.toUpperCase()}...
+            </div>
+          }>
+            <ActiveComponent />
+          </Suspense>
+        </motion.div>
       </AnimatePresence>
     </div>
   );

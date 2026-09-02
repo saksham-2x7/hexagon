@@ -1,71 +1,69 @@
 'use client';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { useState } from 'react';
-import PremiumSlider from '../../components/ui/PremiumSlider';
-import DragDropZone from '../../components/ui/DragDropZone';
-import AnimatedSelector from '../../components/ui/AnimatedSelector';
-import { LearnerProfile } from '../../types/learner';
+import { useRouter } from 'next/navigation';
 
 export default function SetupPage() {
+  const router = useRouter();
   const [topic, setTopic] = useState('');
-  const [depth, setDepth] = useState(3);
-  const [learningStyle, setLearningStyle] = useState('visual');
-  const [hasMaterials, setHasMaterials] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
-    const profile: LearnerProfile = {
-      topic,
-      depthLevel: depth,
-      learningStyle: learningStyle as LearnerProfile['learningStyle'],
-      hasMaterials,
-    };
-    console.log("Learner Profile Generated:", profile);
+    if (!topic.trim()) return;
+    setIsProcessing(true);
+    setTimeout(() => {
+      router.push('/lesson/debug');
+    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-gray-900 border border-gray-800 rounded-3xl p-8 shadow-2xl space-y-8 relative overflow-hidden">
-        
-        {/* Glow effect */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-600 to-purple-600"></div>
+    <div className="w-full min-h-screen bg-hexagon-dark text-white flex flex-col items-center justify-center relative px-6">
+      <Link href="/" className="absolute top-8 left-8 text-white/50 hover:text-white font-mono text-sm tracking-widest flex items-center gap-2 transition-colors">
+        <span className="text-hexagon-accent">←</span> RETURN
+      </Link>
+      
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-xl bg-hexagon-surface/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-12 shadow-2xl"
+      >
+        <h1 className="text-3xl font-bold mb-2 tracking-tight">Initialize Session</h1>
+        <p className="text-white/40 text-sm mb-8">Establish connection to the polymorphic interface.</p>
 
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Initialize Learner</h1>
-          <p className="text-sm text-gray-400">Configure the polymorphic kernel parameters.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Topic</label>
+        <form onSubmit={handleStart} className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-mono text-white/60 tracking-widest uppercase">Target Concept</label>
             <input 
               type="text" 
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-              placeholder="e.g. Quantum Computing"
-              required
+              placeholder="e.g. Cellular Respiration, Quantum Entanglement"
+              className="bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-hexagon-accent transition-colors font-medium placeholder:text-white/20"
+              disabled={isProcessing}
             />
           </div>
 
-          <PremiumSlider value={depth} onChange={setDepth} />
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Style</label>
-            <AnimatedSelector 
-              options={['visual', 'kinesthetic', 'auditory', 'reading']} 
-              selected={learningStyle}
-              onChange={setLearningStyle}
-            />
-          </div>
-
-          <DragDropZone onUpload={() => setHasMaterials(true)} />
-
-          <button type="submit" className="w-full py-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)] text-sm tracking-wide">
-            INITIALIZE KERNEL
+          <button 
+            type="submit"
+            disabled={!topic.trim() || isProcessing}
+            className={`w-full py-4 rounded-xl font-bold tracking-widest text-sm transition-all uppercase flex justify-center items-center ${
+              !topic.trim() || isProcessing ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-hexagon-accent text-black hover:shadow-[0_0_20px_rgba(0,255,157,0.4)]'
+            }`}
+          >
+            {isProcessing ? (
+              <motion.div 
+                animate={{ rotate: 360 }} 
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="w-5 h-5 border-2 border-white/20 border-t-hexagon-accent rounded-full"
+              />
+            ) : (
+              'Synthesize Interface'
+            )}
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
-

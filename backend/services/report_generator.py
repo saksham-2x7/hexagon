@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
-from core.llm_client import generate_structured_output
+from app.core.llm_client import generate_structured_output
 
 class LearningReport(BaseModel):
     overall_score_percentage: int = Field(..., description="A calculated percentage score (0-100) based on the ratio of strong vs. weak concepts.")

@@ -9,10 +9,9 @@ def test_student_interact_valid():
     # 1. Create session
     payload = {
         "learner_profile": {
-            "student_id": "888e8400-e29b-41d4-a716-446655440000",
-            "grade_or_level": "beginner",
+            "educational_level": "BEGINNER", "preferred_language": "English", "learning_style": "CONCEPTUAL",
             "target_subject": "Math",
-            "time_budget_minutes": 20
+            "available_time_minutes": 20
         },
         "current_topic": "Algebra"
     }
@@ -38,10 +37,9 @@ def test_stream_interaction():
     # 1. Create session
     payload = {
         "learner_profile": {
-            "student_id": "999e8400-e29b-41d4-a716-446655440000",
-            "grade_or_level": "advanced",
+            "educational_level": "ADVANCED", "preferred_language": "English", "learning_style": "ANALYTICAL",
             "target_subject": "Physics",
-            "time_budget_minutes": 30
+            "available_time_minutes": 30
         },
         "current_topic": "Relativity"
     }
@@ -62,8 +60,8 @@ def test_stream_interaction():
         
         # Ensure it's valid JSON payload inside
         json_data = json.loads(first_event[6:])
-        assert "spoken_text" in json_data
-        assert json_data["state"] == "TEACHING"
+        assert "status" in json_data
+        assert json_data["status"] == "thinking"
 
 def test_stream_invalid_session():
     res = client.get("/api/v1/sessions/bad-session-id/stream")

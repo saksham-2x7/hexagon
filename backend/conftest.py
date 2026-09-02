@@ -1,6 +1,12 @@
 import pytest
 import asyncio
 import aiosqlite
+import sys
+import os
+
+# Add hexagon root to pythonpath for tests
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app.core.database import DocumentStore, DB_PATH
 
 @pytest.fixture(scope="session", autouse=True)

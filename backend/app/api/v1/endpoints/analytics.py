@@ -7,7 +7,7 @@ from app.schemas.analytics import (
     DiagnosticReport,
     LearnerProgressSummary,
 )
-from app.schemas.interaction import PedagogicalState
+from contracts.pedagogy.state_machine import TeachingState
 from app.repositories.session_repo import session_repo
 from app.repositories.learner_repo import learner_repo
 
@@ -67,7 +67,7 @@ async def submit_assessment(session_id: str, submission: AssessmentSubmission):
     await learner_repo.save_diagnostic_report(report)
 
     # Update session state to COMPLETED
-    session.current_state = PedagogicalState.COMPLETED
+    session.current_state = TeachingState.COMPLETED
     session.updated_at = datetime.now(timezone.utc)
     await session_repo.update_session(session)
 

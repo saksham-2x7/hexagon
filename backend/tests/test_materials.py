@@ -8,7 +8,6 @@ client = TestClient(app)
 def test_upload_material():
     # We must use 'files' for UploadFile and 'data' for Form
     files = {"file": ("test.pdf", b"%PDF-1.4 mock pdf data", "application/pdf")}
-    data = {"student_id": "12345-uuid"}
     
     response = client.post("/api/v1/materials/upload", files=files, data=data)
     

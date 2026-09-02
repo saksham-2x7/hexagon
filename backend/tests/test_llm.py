@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pydantic import BaseModel, Field
-from core.llm_client import generate_structured_output
+from app.core.llm_client import generate_structured_output
 
 # 1. Define a dummy schema
 class LessonConcept(BaseModel):

@@ -4,6 +4,10 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AI Teacher Backend"
     API_V1_STR: str = "/api/v1"
     
+    # Gemini
+    GEMINI_API_KEY: str = ""
+    DEFAULT_MODEL: str = "gemini-2.5-flash"
+    
     # CORS settings
     BACKEND_CORS_ORIGINS: list[str] = ["*"]
     

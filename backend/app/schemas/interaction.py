@@ -1,21 +1,10 @@
 from typing import Optional, Any
 from pydantic import BaseModel
-from enum import Enum
-
-class PedagogicalState(str, Enum):
-    INIT = "INIT"
-    PLANNING = "PLANNING"
-    TEACHING = "TEACHING"
-    DEMONSTRATING = "DEMONSTRATING"
-    QUESTIONING = "QUESTIONING"
-    EVALUATING = "EVALUATING"
-    ADAPTING = "ADAPTING"
-    ASSESSING = "ASSESSING"
-    COMPLETED = "COMPLETED"
+from contracts.pedagogy.state_machine import TeachingState
 
 class InteractionTurn(BaseModel):
     turn_id: str
-    state: PedagogicalState
+    state: TeachingState
     spoken_text: Optional[str] = None
     visual_intent: Optional[dict[str, Any]] = None
     student_input: Optional[str] = None

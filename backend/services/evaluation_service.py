@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from core.llm_client import generate_structured_output
+from app.core.llm_client import generate_structured_output
 
 class GeneratedQuestion(BaseModel):
     question_text: str = Field(..., description="The conversational spoken question posed to the student.")

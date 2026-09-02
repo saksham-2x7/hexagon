@@ -4,20 +4,23 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import uuid
 
-from app.schemas.learner import LearnerProfile
+from contracts.pedagogy.models import LearnerProfile
 from app.schemas.session import TeachingSession
-from app.schemas.interaction import PedagogicalState, InteractionTurn
+from app.schemas.interaction import InteractionTurn
 from app.repositories.session_repo import session_repo
-from app.services.teaching_engine import mock_generate_teaching_turn
+from app.services.teaching_engine import generate_teaching_turn
+
+from contracts.pedagogy.state_machine import TeachingState, TeachingStateMachine
 
 router = APIRouter()
 
 class CreateSessionRequest(BaseModel):
     learner_profile: LearnerProfile
     current_topic: str
+    material_id: str | None = None
 
 class UpdateStateRequest(BaseModel):
-    state: PedagogicalState
+    state: TeachingState
 
 class StudentInputRequest(BaseModel):
     student_input: str
@@ -27,7 +30,8 @@ async def create_session(request: CreateSessionRequest):
     new_session = TeachingSession(
         learner_profile=request.learner_profile,
         current_topic=request.current_topic,
-        current_state=PedagogicalState.INIT
+        material_id=request.material_id,
+        current_state=TeachingState.IDLE
     )
     return await session_repo.create_session(new_session)
 
@@ -38,19 +42,6 @@ async def get_session(session_id: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     return session
 
-# Basic state machine rules
-VALID_TRANSITIONS = {
-    PedagogicalState.INIT: [PedagogicalState.PLANNING],
-    PedagogicalState.PLANNING: [PedagogicalState.TEACHING, PedagogicalState.QUESTIONING],
-    PedagogicalState.TEACHING: [PedagogicalState.DEMONSTRATING, PedagogicalState.QUESTIONING, PedagogicalState.ASSESSING],
-    PedagogicalState.DEMONSTRATING: [PedagogicalState.QUESTIONING, PedagogicalState.TEACHING],
-    PedagogicalState.QUESTIONING: [PedagogicalState.EVALUATING],
-    PedagogicalState.EVALUATING: [PedagogicalState.ADAPTING, PedagogicalState.ASSESSING, PedagogicalState.COMPLETED],
-    PedagogicalState.ADAPTING: [PedagogicalState.TEACHING, PedagogicalState.DEMONSTRATING],
-    PedagogicalState.ASSESSING: [PedagogicalState.COMPLETED, PedagogicalState.ADAPTING],
-    PedagogicalState.COMPLETED: [PedagogicalState.INIT] # Can reset back to init
-}
-
 @router.patch("/{session_id}/state", response_model=TeachingSession)
 async def update_session_state(session_id: str, request: UpdateStateRequest):
     session = await session_repo.get_session(session_id)
@@ -60,7 +51,8 @@ async def update_session_state(session_id: str, request: UpdateStateRequest):
     current = session.current_state
     target = request.state
     
-    if target not in VALID_TRANSITIONS.get(current, []):
+    valid_transitions = TeachingStateMachine.VALID_TRANSITIONS.get(current, [])
+    if target not in valid_transitions:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail=f"Invalid state transition from {current.value} to {target.value}"
@@ -95,8 +87,8 @@ async def stream_interaction(session_id: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
         
     async def sse_generator():
-        # Using mock_generate_teaching_turn to simulate the AI teacher
-        async for chunk in mock_generate_teaching_turn(session_id):
+        # Using real generate_teaching_turn 
+        async for chunk in generate_teaching_turn(session_id):
             # Format strictly as SSE: data: ...\n\n
             yield f"data: {chunk}\n\n"
             

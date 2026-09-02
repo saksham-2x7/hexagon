@@ -32,7 +32,7 @@ export default function MasteryDrawer({ isOpen, onClose }: MasteryDrawerProps) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-[450px] bg-card/90 backdrop-blur-3xl border-l border-white/10 z-50 p-8 overflow-y-auto pointer-events-auto shadow-2xl flex flex-col gap-8"
+            className="fixed right-0 top-0 bottom-0 w-[450px] bg-card/90 backdrop-blur-3xl border-l border-hexagon-border z-50 p-8 overflow-y-auto pointer-events-auto shadow-2xl flex flex-col gap-8"
           >
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold tracking-tight">Mastery Map</h2>
@@ -43,12 +43,12 @@ export default function MasteryDrawer({ isOpen, onClose }: MasteryDrawerProps) {
 
             {/* Overall Score */}
             <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 flex items-center justify-between relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-hexagon-accent/20 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
               <div>
-                <div className="text-sm font-mono text-primary uppercase tracking-widest mb-1">Global Mastery</div>
-                <div className="text-4xl font-light">69<span className="text-xl text-primary/60">%</span></div>
+                <div className="text-sm font-mono text-hexagon-accent uppercase tracking-widest mb-1">Global Mastery</div>
+                <div className="text-4xl font-light">69<span className="text-xl text-hexagon-accent/60">%</span></div>
               </div>
-              <Target size={48} className="text-primary/30" />
+              <Target size={48} className="text-hexagon-accent/30" />
             </div>
 
             {/* Topic Breakdown */}
@@ -61,15 +61,15 @@ export default function MasteryDrawer({ isOpen, onClose }: MasteryDrawerProps) {
                       <span className="font-medium">{t.name}</span>
                       <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
                         t.status === 'Weak' ? 'bg-destructive/20 text-destructive' : 
-                        t.status === 'Mastered' ? 'bg-primary/20 text-primary' : 
-                        'bg-white/10 text-white/70'
+                        t.status === 'Mastered' ? 'bg-hexagon-accent/20 text-hexagon-accent' : 
+                        'bg-white/10 text-hexagon-text-hexagon-accent/70'
                       }`}>
                         {t.status}
                       </span>
                     </div>
                     <div className="flex items-center gap-4">
                       <Progress value={t.score} className={`flex-1 h-1.5 ${t.status === 'Weak' ? '[&>div]:bg-destructive' : ''}`} />
-                      <span className="text-xs font-mono w-8 text-right text-white/50">{t.score}%</span>
+                      <span className="text-xs font-mono w-8 text-right text-hexagon-text-hexagon-accent/50">{t.score}%</span>
                     </div>
                   </div>
                 ))}
@@ -77,27 +77,27 @@ export default function MasteryDrawer({ isOpen, onClose }: MasteryDrawerProps) {
             </div>
 
             {/* AI Recommendation */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <div className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-white/70 mb-4">
+            <div className="bg-hexagon-surface border border-hexagon-border rounded-2xl p-6">
+              <div className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-hexagon-text-hexagon-accent/70 mb-4">
                 <TrendingUp size={16} /> AI Recommendation
               </div>
-              <p className="text-sm text-white/80 leading-relaxed mb-4">
+              <p className="text-sm text-hexagon-text-hexagon-accent/80 leading-relaxed mb-4">
                 You are struggling with <span className="text-destructive font-medium">Backpropagation</span>. The system has automatically reduced the pacing and will rely more on visual 3D simulation rather than pure mathematical graphs for this segment.
               </p>
               <div className="flex items-center gap-3 text-xs bg-black/40 p-3 rounded-xl border border-white/5">
                 <AlertCircle size={14} className="text-yellow-500" />
-                <span className="text-white/60">Scaffolding level increased to High.</span>
+                <span className="text-hexagon-text-hexagon-accent/60">Scaffolding level increased to High.</span>
               </div>
             </div>
 
             {/* Source Grounding */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <div className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-white/70 mb-4">
+            <div className="bg-hexagon-surface border border-hexagon-border rounded-2xl p-6">
+              <div className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-hexagon-text-hexagon-accent/70 mb-4">
                 <BookOpen size={16} /> Source Grounding
               </div>
-              <p className="text-sm text-white/80 leading-relaxed">
+              <p className="text-sm text-hexagon-text-hexagon-accent/80 leading-relaxed">
                 Currently learning from: <br/>
-                <span className="font-medium text-white">CS231n_Lecture4_Backprop.pdf</span> (Page 14)
+                <span className="font-medium text-hexagon-text-hexagon-accent">CS231n_Lecture4_Backprop.pdf</span> (Page 14)
               </p>
             </div>
 

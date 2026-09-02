@@ -1,19 +1,34 @@
 from typing import List, Optional, Dict
 from app.schemas.analytics import DiagnosticReport, LearnerProgressSummary, MasteryStatus
+from app.core.database import DocumentStore
+import uuid
 
 class LearnerRepository:
-    def __init__(self):
-        # Maps student_id to list of DiagnosticReports
-        self._reports: Dict[str, List[DiagnosticReport]] = {}
-
     async def save_diagnostic_report(self, report: DiagnosticReport) -> DiagnosticReport:
-        if report.student_id not in self._reports:
-            self._reports[report.student_id] = []
-        self._reports[report.student_id].append(report)
+        # Give the report a unique ID since it doesn't natively have one
+        report_id = str(uuid.uuid4())
+        await DocumentStore.put("diagnostics", report_id, report.model_dump(mode="json"))
         return report
 
     async def get_reports_by_student(self, student_id: str) -> List[DiagnosticReport]:
-        return self._reports.get(student_id, [])
+        all_reports_data = await DocumentStore.get_all("diagnostics")
+        reports = []
+        for data in all_reports_data:
+            r = DiagnosticReport(**data)
+            if r.student_id == student_id:
+                reports.append(r)
+        
+        # Sort them by timestamp if needed, but append order is roughly preserved 
+        # in the DB anyway. We will just return the filtered list.
+        return reports
+
+    async def get_report_by_session(self, session_id: str) -> Optional[DiagnosticReport]:
+        all_reports_data = await DocumentStore.get_all("diagnostics")
+        for data in all_reports_data:
+            r = DiagnosticReport(**data)
+            if r.session_id == session_id:
+                return r
+        return None
 
     async def get_learner_progress(self, student_id: str) -> Optional[LearnerProgressSummary]:
         reports = await self.get_reports_by_student(student_id)

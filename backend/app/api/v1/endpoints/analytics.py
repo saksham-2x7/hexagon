@@ -86,12 +86,8 @@ async def get_learner_progress(student_id: str):
 
 @router.get("/sessions/{session_id}/report", response_model=DiagnosticReport)
 async def get_session_report(session_id: str):
-    # We find the report in the learner_repo by searching all reports.
-    # In a real DB, this would be a simple query: SELECT * FROM reports WHERE session_id = ?
-    # For in-memory, we can scan.
-    for reports in learner_repo._reports.values():
-        for report in reports:
-            if report.session_id == session_id:
-                return report
+    report = await learner_repo.get_report_by_session(session_id)
+    if report:
+        return report
     
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found for this session")

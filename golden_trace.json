@@ -1,0 +1,206 @@
+[
+  {
+    "timestamp": "2026-09-02T04:38:21.933659+00:00",
+    "event_type": "FSM_INIT",
+    "data": {
+      "state": "IDLE"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933847+00:00",
+    "event_type": "SESSION_START",
+    "data": {
+      "profile": {
+        "educational_level": "BEGINNER",
+        "target_subject": "Physics - Electricity",
+        "available_time_minutes": 20,
+        "preferred_language": "Hinglish",
+        "learning_style": "CONCEPTUAL"
+      },
+      "lesson_plan": {
+        "topic": "Ohm's Law",
+        "overview": "Intro to V, I, and R",
+        "target_duration_minutes": 20,
+        "modules": [
+          {
+            "id": "mod_1",
+            "title": "Voltage and Resistance",
+            "concepts": [
+              "voltage",
+              "resistance",
+              "current_effect"
+            ],
+            "estimated_time_minutes": 10,
+            "prerequisites": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933855+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "PLANNING"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933858+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "TEACHING"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933918+00:00",
+    "event_type": "TEACHING_TURN_EMITTED",
+    "data": {
+      "turn_id": "t_1",
+      "module_id": "mod_1",
+      "concept_id": "current_effect",
+      "spoken_text": "Voltage is the push, resistance is the block. Agar resistance badh gaya, toh current ka kya hoga?",
+      "visual_intent": {
+        "type": "text",
+        "payload": "Voltage (Push) vs Resistance (Block)"
+      },
+      "interactive_prompt": {
+        "prompt_type": "concept_check",
+        "question_text": "What happens to current if resistance increases?",
+        "options": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933921+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "WAITING_FOR_STUDENT"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933953+00:00",
+    "event_type": "STUDENT_TURN_RECEIVED",
+    "data": {
+      "turn_id": "t_1",
+      "response_text": "Current increases.",
+      "response_type": "text",
+      "timestamp": "2026-09-02 04:38:21.933923+00:00"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933956+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "EVALUATING"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933969+00:00",
+    "event_type": "EVALUATION_COMPLETED",
+    "data": {
+      "understanding_status": "MISCONCEPTION",
+      "misconception_type": "CONCEPTUAL_FLAW",
+      "detected_gap_or_misconception": "Thinks more resistance means more current.",
+      "confidence_score": 0.95,
+      "pedagogical_rationale": "Directly contradicted the inverse relationship."
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933971+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "ADAPTING"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933981+00:00",
+    "event_type": "ADAPTATION_GENERATED",
+    "data": {
+      "next_action": "REEXPLAIN_WITH_ANALOGY",
+      "adaptation_context": "Student has a conceptual flaw. Address with a targeted analogy. Detail: Thinks more resistance means more current."
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933983+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "TEACHING"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933995+00:00",
+    "event_type": "TEACHING_TURN_EMITTED",
+    "data": {
+      "turn_id": "t_2",
+      "module_id": "mod_1",
+      "concept_id": "current_effect_reexplained",
+      "spoken_text": "Socho pipe mein kachra (resistance) phasa hai. Agar kachra badhega, toh paani (current) kam nikalega na?",
+      "visual_intent": {
+        "type": "diagram_ref",
+        "payload": "water_pipe_blockage"
+      },
+      "interactive_prompt": {
+        "prompt_type": "concept_check",
+        "question_text": "So if resistance increases, what happens to current?",
+        "options": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.933997+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "WAITING_FOR_STUDENT"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.934002+00:00",
+    "event_type": "STUDENT_TURN_RECEIVED",
+    "data": {
+      "turn_id": "t_2",
+      "response_text": "Current decreases.",
+      "response_type": "text",
+      "timestamp": "2026-09-02 04:38:21.933999+00:00"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.934003+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "EVALUATING"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.934008+00:00",
+    "event_type": "EVALUATION_COMPLETED",
+    "data": {
+      "understanding_status": "UNDERSTOOD",
+      "misconception_type": null,
+      "detected_gap_or_misconception": null,
+      "confidence_score": 0.99,
+      "pedagogical_rationale": "Student correctly identified current decreases."
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.934010+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "ADAPTING"
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.934025+00:00",
+    "event_type": "ADAPTATION_GENERATED",
+    "data": {
+      "next_action": "PROCEED_NEXT_CONCEPT",
+      "adaptation_context": "Student demonstrated clear understanding. Proceed to the next concept in the module."
+    }
+  },
+  {
+    "timestamp": "2026-09-02T04:38:21.934027+00:00",
+    "event_type": "FSM_TRANSITION",
+    "data": {
+      "new_state": "PLANNING"
+    }
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "learner_profile": {
+    "educational_level": "BEGINNER",
+    "target_subject": "Physics",
+    "available_time_minutes": 20,
+    "preferred_language": "hinglish",
+    "learning_style": "CONCEPTUAL"
+  },
+  "lesson_plan": {
+    "topic": "Ohm's Law",
+    "overview": "Introduction to voltage, current, resistance, and their relationship (V=IR)",
+    "target_duration_minutes": 20,
+    "modules": [
+      {
+        "id": "mod_1",
+        "title": "Basic Concepts: V, I, and R",
+        "concepts": ["voltage_push", "current_flow", "resistance_block"],
+        "estimated_time_minutes": 10,
+        "prerequisites": []
+      },
+      {
+        "id": "mod_2",
+        "title": "Ohm's Law Equation",
+        "concepts": ["v_equals_ir", "proportionality"],
+        "estimated_time_minutes": 10,
+        "prerequisites": ["mod_1"]
+      }
+    ]
+  },
+  "teaching_turn": {
+    "turn_id": "turn_123",
+    "module_id": "mod_1",
+    "concept_id": "voltage_push",
+    "spoken_text": "Soch lo ek paani ka pipe hai. Voltage wahi pressure hai jo paani ko push karta hai. Samjhe?",
+    "visual_intent": {
+      "type": "text",
+      "payload": "Voltage (V) = Pressure"
+    },
+    "interactive_prompt": {
+      "prompt_type": "concept_check",
+      "question_text": "Agar pressure (voltage) badhega, toh paani (current) ka kya hoga?"
+    }
+  },
+  "student_turn": {
+    "turn_id": "turn_124",
+    "response_text": "Paani tez bahega, matlab current badhega?",
+    "response_type": "text",
+    "timestamp": "2026-09-02T10:00:00Z"
+  },
+  "evaluation": {
+    "understanding_status": "UNDERSTOOD",
+    "detected_gap_or_misconception": null,
+    "confidence_score": 0.95,
+    "pedagogical_rationale": "Student correctly mapped increased pressure to increased current."
+  },
+  "adaptation": {
+    "next_action": "PROCEED_NEXT_CONCEPT",
+    "adaptation_context": "Move on to resistance acting as a blockage in the pipe."
+  }
+}

@@ -355,3 +355,40 @@ def test_unicode_and_math_symbols():
     assert "\u222b" in result.raw_text
     assert "\u2211" in result.raw_text
     assert "\u03b1" in result.raw_text
+
+
+def test_indic_multilingual_text_extraction():
+    """Test extraction of Indic scripts and format characters."""
+    indic_text = "Tamil Course: \u0ba4\u0bae\u0bbf\u0bb4\u0bcd \u200d Advanced Grammar"
+    result = DocumentProcessor.extract_text(indic_text.encode("utf-8"), file_name="tamil.txt")
+    assert "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd" in result.raw_text
+    assert "Advanced Grammar" in result.raw_text
+
+
+def test_docx_merged_cells_table():
+    """Test that horizontally merged table cells in DOCX do not produce duplicated column text."""
+    doc = docx.Document()
+    table = doc.add_table(rows=2, cols=2)
+    # Merge row 0 cells
+    table.rows[0].cells[0].merge(table.rows[0].cells[1])
+    table.rows[0].cells[0].text = "Merged Header"
+    table.rows[1].cells[0].text = "Left Col"
+    table.rows[1].cells[1].text = "Right Col"
+
+    buf = io.BytesIO()
+    doc.save(buf)
+
+    result = DocumentProcessor.extract_text(buf.getvalue(), file_name="merged.docx")
+    assert "Merged Header" in result.raw_text
+    # Should not repeat "Merged Header | Merged Header"
+    assert "Merged Header | Merged Header" not in result.raw_text
+
+
+def test_stream_already_at_eof():
+    """Test reading a stream that was already read to EOF without resetting pointer."""
+    stream = io.BytesIO(b"Stream at EOF test content.")
+    stream.read()  # pointer now at EOF
+    assert stream.tell() > 0
+
+    result = DocumentProcessor.extract_text(stream, file_type="txt", file_name="eof_test.txt")
+    assert "Stream at EOF test content." in result.raw_text

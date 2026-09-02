@@ -81,6 +81,7 @@ class DocumentProcessor:
         "application/msword": ".docx",
         "text/plain": ".txt",
         "text/markdown": ".md",
+        "text/x-markdown": ".md",
     }
 
     @staticmethod
@@ -98,10 +99,10 @@ class DocumentProcessor:
         # Replace carriage return line feeds with standard newlines
         normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
 
-        # Filter out non-printable ASCII/Unicode control chars, preserving \n and \t
+        # Filter out ASCII/Unicode control characters (Cc), preserving \n and \t and format characters
         cleaned_chars = [
             char for char in normalized
-            if char in ("\n", "\t") or (unicodedata.category(char)[0] != "C" and ord(char) >= 32)
+            if char in ("\n", "\t") or (unicodedata.category(char) != "Cc" and ord(char) >= 32)
         ]
         cleaned_text = "".join(cleaned_chars)
 
@@ -152,7 +153,7 @@ class DocumentProcessor:
         cls,
         file_source: Union[str, Path, BinaryIO, bytes],
     ) -> bytes:
-        """Reads raw bytes from various input sources with error checks."""
+        """Reads raw bytes from various input sources with defensive stream position handling."""
         if isinstance(file_source, bytes):
             return file_source
 
@@ -162,7 +163,16 @@ class DocumentProcessor:
 
         if hasattr(file_source, "read"):
             try:
-                content = file_source.read()
+                # If stream is seekable and cursor is at non-zero or EOF, handle gracefully
+                if hasattr(file_source, "tell") and hasattr(file_source, "seek"):
+                    pos = file_source.tell()
+                    content = file_source.read()
+                    if not content and pos != 0:
+                        file_source.seek(0)
+                        content = file_source.read()
+                else:
+                    content = file_source.read()
+
                 if isinstance(content, str):
                     return content.encode("utf-8")
                 return content
@@ -232,11 +242,14 @@ class DocumentProcessor:
         else:
             raise UnsupportedFileTypeError(f"Unsupported extension: {resolved_ext}")
 
-        if raise_on_empty and (not doc.raw_text or doc.raw_text.strip() == ""):
-            raise EmptyDocumentError(
-                f"No extractable text found in document '{inferred_name or 'unknown'}'. "
-                "The file may contain only scanned images or blank pages."
-            )
+        is_text_empty = not doc.raw_text or doc.raw_text.strip() == ""
+        if is_text_empty:
+            doc.metadata["is_empty"] = True
+            if raise_on_empty:
+                raise EmptyDocumentError(
+                    f"No extractable text found in document '{inferred_name or 'unknown'}'. "
+                    "The file may contain only scanned images or blank pages."
+                )
 
         return doc
 
@@ -334,7 +347,15 @@ class DocumentProcessor:
             for table in document.tables:
                 table_lines: List[str] = []
                 for row in table.rows:
-                    row_cells = [cell.text.strip().replace("\n", " ") for cell in row.cells]
+                    seen_cells = set()
+                    row_cells: List[str] = []
+                    for cell in row.cells:
+                        # Deduplicate horizontally merged cells
+                        if cell._tc not in seen_cells:
+                            seen_cells.add(cell._tc)
+                            cell_str = cell.text.strip().replace("\n", " ")
+                            row_cells.append(cell_str)
+
                     if any(row_cells):
                         table_lines.append(" | ".join(row_cells))
                 if table_lines:

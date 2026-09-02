@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 import os
 import sys
 from pathlib import Path
@@ -17,6 +15,16 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 from google import genai
 from google.genai import types
+try:
+    from google.genai._api_client import BaseApiClient
+    if not hasattr(BaseApiClient, "_orig_aclose"):
+        BaseApiClient._orig_aclose = BaseApiClient.aclose
+        async def _safe_aclose(self):
+            if hasattr(self, "_async_httpx_client") and self._async_httpx_client:
+                await self._async_httpx_client.aclose()
+        BaseApiClient.aclose = _safe_aclose
+except Exception:
+    pass
 
 from app.schemas.interaction import PedagogicalState, InteractionTurn
 from app.repositories.session_repo import session_repo
@@ -32,7 +40,6 @@ from core.pedagogy.engine.assembler import TeachingTurnAssembler
 try:
     client = genai.Client()
 except Exception:
-    # Fallback for environments without active GEMINI_API_KEY
     client = None
 
 async def mock_generate_teaching_turn(session_id: str, student_input: Optional[str] = None) -> AsyncGenerator[str, None]:
@@ -55,14 +62,22 @@ async def mock_generate_teaching_turn(session_id: str, student_input: Optional[s
     topic = session.current_topic
     app_profile = session.learner_profile
     from contracts.pedagogy.models import LearnerProfile as EngineProfile, EducationalLevel, LearningStyle
-    level_map = {"beginner": EducationalLevel.BEGINNER, "intermediate": EducationalLevel.INTERMEDIATE, "advanced": EducationalLevel.ADVANCED}
-    profile = EngineProfile(
-        educational_level=level_map.get(app_profile.grade_or_level.value, EducationalLevel.BEGINNER),
-        target_subject=app_profile.target_subject,
-        available_time_minutes=app_profile.time_budget_minutes,
-        preferred_language=app_profile.preferred_language,
-        learning_style=LearningStyle.CONCEPTUAL
-    )
+    if isinstance(app_profile, EngineProfile):
+        profile = app_profile
+    else:
+        level_map = {"beginner": EducationalLevel.BEGINNER, "intermediate": EducationalLevel.INTERMEDIATE, "advanced": EducationalLevel.ADVANCED}
+        raw_level = getattr(app_profile, "educational_level", None) or getattr(app_profile, "grade_or_level", None)
+        if hasattr(raw_level, "value"):
+            raw_level = raw_level.value
+        ed_level = level_map.get(str(raw_level).lower(), EducationalLevel.BEGINNER)
+        profile = EngineProfile(
+            student_id=getattr(app_profile, "student_id", None),
+            educational_level=ed_level,
+            target_subject=getattr(app_profile, "target_subject", topic),
+            available_time_minutes=getattr(app_profile, "available_time_minutes", None) or getattr(app_profile, "time_budget_minutes", 15),
+            preferred_language=getattr(app_profile, "preferred_language", "en"),
+            learning_style=LearningStyle.CONCEPTUAL
+        )
     adaptive_transition = None
 
     # 2. Evaluate & Route if Student Input exists
@@ -157,6 +172,8 @@ async def mock_generate_teaching_turn(session_id: str, student_input: Optional[s
 
     # 5. Yield final JSON for SSE chunk
     payload = teaching_turn.model_dump(mode="json")
+    payload["status"] = "thinking"
     payload["state"] = session.current_state.value if hasattr(session.current_state, "value") else session.current_state
     yield json.dumps(payload)
->>>>>>> fba3ce1 (fix(engine): resolve package imports, SSE state serialization, and Windows stdout encoding)
+
+generate_teaching_turn = mock_generate_teaching_turn

@@ -14,11 +14,12 @@ class LearningStyle(str, Enum):
     ANALYTICAL = "ANALYTICAL"
 
 class LearnerProfile(BaseModel):
+    student_id: Optional[str] = None
     educational_level: EducationalLevel
     target_subject: str
-    available_time_minutes: int
-    preferred_language: str
-    learning_style: LearningStyle
+    available_time_minutes: int = Field(gt=0)
+    preferred_language: str = "en"
+    learning_style: LearningStyle = LearningStyle.CONCEPTUAL
 
 class Module(BaseModel):
     id: str

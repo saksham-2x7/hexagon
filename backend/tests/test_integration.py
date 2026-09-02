@@ -4,7 +4,7 @@ import json
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_full_integration_sse_stream():
     """
     Tests the Milestone 8 integration: FSM, RAG, and Gemini via SSE stream.

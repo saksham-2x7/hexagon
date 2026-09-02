@@ -8,7 +8,10 @@ def test_submit_assessment_valid():
     # 1. Create session
     payload = {
         "learner_profile": {
-            "grade_or_level": "intermediate",
+            "educational_level": "INTERMEDIATE",
+            "preferred_language": "English",
+            "learning_style": "CONCEPTUAL",
+            "student_id": "550e8400-e29b-41d4-a716-446655440000",
             "target_subject": "Math",
             "available_time_minutes": 30
         },
@@ -91,7 +94,10 @@ def test_get_session_report():
     # We'll just create a new one to be isolated
     payload = {
         "learner_profile": {
-            "educational_level": "ADVANCED", "preferred_language": "English", "learning_style": "ANALYTICAL",
+            "educational_level": "ADVANCED",
+            "preferred_language": "English",
+            "learning_style": "ANALYTICAL",
+            "student_id": "999e8400-e29b-41d4-a716-446655440000",
             "target_subject": "Science",
             "available_time_minutes": 10
         },

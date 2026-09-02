@@ -35,6 +35,8 @@
     "autoprefixer": "^10.5.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "playwright": "^1.62.1",
+    "puppeteer": "^25.9.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -37,15 +37,15 @@ export function NeuralNetworkBoard({ demoState, weightValue, onWeightChange }: N
   ];
 
   return (
-    <div className="w-full h-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-3xl p-8 flex flex-col shadow-lg relative">
+    <div className="w-full h-full bg-[#111] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-[#222] rounded-3xl p-8 flex flex-col shadow-lg relative">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#111111] rounded-xl border border-[#1f1f1f]">
+          <div className="p-2 bg-[#1a1a1a] rounded-xl border border-[#222]">
             <BrainCircuit className="w-5 h-5 text-hexagon-accent" />
           </div>
           <h3 className="text-xl font-bold tracking-tight text-white">Neural Network Topology</h3>
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium bg-[#111111] border border-[#1f1f1f] text-gray-400 px-4 py-1.5 rounded-full">
+        <div className="flex items-center gap-2 text-sm font-medium bg-[#1a1a1a] border border-[#222] text-gray-400 px-4 py-1.5 rounded-full">
           <Activity className="w-4 h-4" />
           Live Forward Pass
         </div>
@@ -118,7 +118,7 @@ export function NeuralNetworkBoard({ demoState, weightValue, onWeightChange }: N
            <motion.div 
              initial={{ opacity: 0, y: 10 }}
              animate={{ opacity: 1, y: 0 }}
-             className="absolute top-[30%] left-[55%] bg-[#0a0a0a] border border-hexagon-accent p-4 rounded-2xl shadow-2xl z-20 w-64"
+             className="absolute top-[30%] left-[55%] bg-[#111] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-hexagon-accent p-4 rounded-2xl shadow-2xl z-20 w-64"
            >
               <div className="text-sm font-bold text-hexagon-accent mb-3">ADJUST WEIGHT (w₁)</div>
               <input 

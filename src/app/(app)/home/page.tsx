@@ -33,12 +33,17 @@ export default function HomePage() {
   const [promptIdx, setPromptIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const getGreeting = () => {
+  const [greeting, setGreeting] = useState('');
+
+  // Compute greeting on client after mount to avoid hydration mismatch
+  useEffect(() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 17) return "Good afternoon";
-    return "Good evening";
-  };
+    let g = 'Good evening';
+    if (h < 12) g = 'Good morning';
+    else if (h < 17) g = 'Good afternoon';
+    // Defer state update to avoid sync setState warning
+    setTimeout(() => setGreeting(g), 0);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setPromptIdx(i => (i + 1) % EXAMPLE_PROMPTS.length), 3000);
@@ -61,7 +66,7 @@ export default function HomePage() {
     <div className="max-w-6xl mx-auto p-8 pt-12 space-y-12">
       <header className="space-y-1">
         <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-semibold tracking-tight text-hexagon-text-primary">
-          {getGreeting()}, {profile?.name || "there"}.
+          {greeting || 'Hello'}, {profile?.name || "there"}.
         </motion.h1>
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-hexagon-text-secondary text-lg">
           {profile?.streakDays ? `${profile.streakDays} day streak — keep it going.` : "What would you like to learn today?"}

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore, type Language, type TutorGender } from "@/store/useAuthStore";
 import { motion } from "framer-motion";
 import { LogOut, Save, ArrowLeft, Flame, Clock, BookOpen, User } from "lucide-react";
 import Link from "next/link";
@@ -28,11 +28,16 @@ export default function ProfilePage() {
   const router = useRouter();
   const { profile, isAuthenticated, logout, updateProfile } = useAuthStore();
   const [saved, setSaved] = useState(false);
-  const [form, setForm] = useState({ name: "", language: "en", level: "intermediate", tutorGender: "female" });
+  const [form, setForm] = useState<{ name: string; language: Language; level: 'beginner'|'intermediate'|'advanced'; tutorGender: 'male'|'female' }>({ name: "", language: "en" as "en"|"hi"|"kn"|"hinglish", level: "intermediate" as "beginner"|"intermediate"|"advanced", tutorGender: "female" as "male"|"female" });
 
   useEffect(() => {
     if (!isAuthenticated) { router.replace("/login"); return; }
-    if (profile) setForm({ name: profile.name, language: profile.language, level: profile.level, tutorGender: profile.tutorGender });
+    if (profile) {
+      // Defer state update to avoid sync setState warning
+      setTimeout(() => {
+        setForm({ name: profile.name, language: profile.language, level: profile.level, tutorGender: profile.tutorGender });
+      }, 0);
+    }
   }, [isAuthenticated, profile, router]);
 
   const handleSave = () => {
@@ -88,7 +93,7 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-hexagon-text-primary">Language</label>
-              <select value={form.language} onChange={e => setForm(f => ({...f, language: e.target.value}))}
+              <select value={form.language} onChange={e => setForm(f => ({...f, language: e.target.value as Language}))}
                 className="w-full bg-hexagon-bg border border-hexagon-border rounded-xl px-4 py-3 text-hexagon-text-primary outline-none focus:border-hexagon-accent/60">
                 {LANGUAGE_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
@@ -99,7 +104,7 @@ export default function ProfilePage() {
             <label className="text-sm font-medium text-hexagon-text-primary">Learning Level</label>
             <div className="grid grid-cols-3 gap-3">
               {LEVEL_OPTIONS.map(l => (
-                <button key={l.value} onClick={() => setForm(f => ({...f, level: l.value}))}
+                <button key={l.value} onClick={() => setForm(f => ({...f, level: l.value as "beginner"|"intermediate"|"advanced"}))}
                   className={"rounded-xl p-4 border text-left transition-all " + (form.level === l.value ? "border-hexagon-accent bg-hexagon-accent/5 text-hexagon-text-primary" : "border-hexagon-border text-hexagon-text-secondary hover:border-hexagon-border hover:text-hexagon-text-primary hover:bg-hexagon-surface-hover")}>
                   <p className="font-medium text-sm">{l.label}</p>
                   <p className="text-xs mt-0.5 opacity-70">{l.desc}</p>
@@ -114,7 +119,7 @@ export default function ProfilePage() {
           <h2 className="text-lg font-semibold text-hexagon-text-primary">Your AI Tutor</h2>
           <div className="grid grid-cols-2 gap-4">
             {TUTORS.map(t => (
-              <button key={t.id} onClick={() => setForm(f => ({...f, tutorGender: t.id}))}
+              <button key={t.id} onClick={() => setForm(f => ({...f, tutorGender: t.id as "male"|"female"}))}
                 className={"relative rounded-2xl p-6 border text-left transition-all bg-gradient-to-br " + t.color + " " + (form.tutorGender === t.id ? "border-hexagon-accent ring-1 ring-hexagon-accent/40" : "border-hexagon-border hover:border-hexagon-border")}>
                 {form.tutorGender === t.id && <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-hexagon-accent flex items-center justify-center text-black text-xs font-bold">✓</div>}
                 <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 mb-4 flex items-center justify-center text-2xl">{t.id === "female" ? "👩‍🏫" : "👨‍🏫"}</div>

@@ -1,6 +1,9 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { Canvas } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
+import ProceduralAvatar from './ProceduralAvatar';
 import { useEffect, useState, useRef } from 'react';
 import { Mic, MicOff, Maximize2, Minimize2, MessageSquare, Eye } from 'lucide-react';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
@@ -149,39 +152,15 @@ export default function AITeacherPiP() {
         </div>
 
         <div className="flex-1 relative flex items-center justify-center bg-black/20 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="avatar-core"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.1 }}
-              className="w-28 h-28 border border-white/5 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-md relative shadow-2xl"
-            >
-              {/* Outer Energy Ring */}
-              <motion.div 
-                className={`absolute inset-0 bg-gradient-to-tr rounded-full opacity-60 blur-md ${presence.bg}`}
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: presence.speed, ease: "linear" }}
-              />
-              
-              {/* Inner Structure */}
-              <div className="w-14 h-14 bg-white/5 rounded-full border border-white/10 flex items-center justify-center z-10 relative overflow-hidden">
-                <div className="absolute inset-0 border border-white/20 rounded-full scale-[0.8] opacity-50" />
-                
-                {/* The "Eye" / Core that follows mouse slightly */}
-                <motion.div 
-                  animate={{ 
-                    x: mousePos.x * 12, // Max 12px shift
-                    y: mousePos.y * 12
-                  }}
-                  transition={{ type: "spring", stiffness: 100, damping: 30 }}
-                  className={`w-5 h-5 rounded-full transition-all duration-500 flex items-center justify-center ${presence.core}`}
-                >
-                  <div className="w-2 h-2 bg-white/50 rounded-full blur-[1px]" />
-                </motion.div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          <div className="absolute inset-0 w-full h-full">
+            <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
+              <ambientLight intensity={0.5} />
+              <pointLight position={[10, 10, 10]} intensity={1} />
+              <Environment preset="city" />
+              <ProceduralAvatar />
+            </Canvas>
+          </div>
+          <div className="absolute inset-0 pointer-events-none rounded-t-3xl shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]" />
         </div>
         
         {/* Audio Waveform Indicator */}

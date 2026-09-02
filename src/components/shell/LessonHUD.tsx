@@ -1,22 +1,36 @@
-'use client';
-import { Settings, Globe, ChevronLeft, Target } from 'lucide-react';
+"use client";
+import { Settings, Globe, ChevronLeft, ChevronRight, Target, X, Check, ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
 import Link from 'next/link';
 import { useShallow } from 'zustand/react/shallow';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import MasteryDrawer from './MasteryDrawer';
+import { useRouter } from 'next/navigation';
 
 export default function LessonHUD() {
-  const mastery = 69; // Mocked for now
+  const router = useRouter();
   const [isMasteryOpen, setIsMasteryOpen] = useState(false);
+  const [showEndDialog, setShowEndDialog] = useState(false);
   
   const { lessonPhase } = useAIIntentStore(
     useShallow(state => ({
       lessonPhase: state.lessonPhase
     }))
   );
+
+  // Derive mock mastery from phase progression
+  const phaseMap = { 'Explain': 20, 'Hypothesize': 40, 'Construct': 60, 'Observe': 80, 'Resolve': 90, 'Evaluate': 100, 'Question': 50 };
+  const mastery = phaseMap[lessonPhase as keyof typeof phaseMap] || 50;
+
+  const handleNext = () => (window as any).nextLessonStep?.();
+  const handlePrev = () => (window as any).prevLessonStep?.();
+  const handleEnd = () => {
+    setShowEndDialog(false);
+    router.push('/progress');
+  };
 
   return (
     <>
@@ -26,9 +40,9 @@ export default function LessonHUD() {
           {/* Left: Brand & Topic */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3 border-r border-hexagon-border pr-6">
-              <Link href="/" className="w-8 h-8 border border-hexagon-accent/50 rounded-lg rotate-45 flex items-center justify-center bg-background shadow-[0_0_15px_rgba(0,255,157,0.2)] hover:scale-110 transition-transform">
+              <div onClick={() => setShowEndDialog(true)} className="w-8 h-8 border border-hexagon-accent/50 rounded-lg rotate-45 flex items-center justify-center bg-background shadow-[0_0_15px_rgba(0,255,157,0.2)] hover:scale-110 transition-transform cursor-pointer">
                 <span className="text-hexagon-accent font-bold font-mono -rotate-45 text-sm">H</span>
-              </Link>
+              </div>
             </div>
             <div>
               <div className="text-[10px] font-mono text-hexagon-text-secondary uppercase tracking-widest mb-1 flex items-center gap-2">
@@ -53,24 +67,53 @@ export default function LessonHUD() {
           </div>
 
           {/* Right: Controls */}
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-hexagon-text-secondary hover:text-hexagon-text-primary rounded-full">
-              <Globe size={18} />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-hexagon-text-secondary hover:text-hexagon-text-primary rounded-full">
-              <Settings size={18} />
-            </Button>
-            <Link href="/">
-              <Button variant="outline" className="ml-2 rounded-full border-hexagon-border hover:border-white/30 text-xs tracking-widest uppercase">
-                <ChevronLeft size={14} className="mr-1" /> Exit
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-black/40 rounded-full border border-hexagon-border p-1">
+              <Button variant="ghost" size="icon" onClick={handlePrev} className="w-8 h-8 rounded-full hover:bg-hexagon-surface text-hexagon-text-secondary hover:text-hexagon-text-primary">
+                <ChevronLeft size={16} />
               </Button>
-            </Link>
+              <Button variant="ghost" size="icon" onClick={handleNext} className="w-8 h-8 rounded-full hover:bg-hexagon-surface text-hexagon-text-secondary hover:text-hexagon-text-primary">
+                <ChevronRight size={16} />
+              </Button>
+            </div>
+            
+            <div className="w-px h-6 bg-hexagon-border mx-1" />
+            
+            <Button variant="outline" onClick={() => setShowEndDialog(true)} className="rounded-full border-hexagon-border hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 text-xs tracking-widest uppercase transition-colors">
+              End Session
+            </Button>
           </div>
 
         </div>
       </div>
 
       <MasteryDrawer isOpen={isMasteryOpen} onClose={() => setIsMasteryOpen(false)} />
+
+      {/* End Session Dialog */}
+      <AnimatePresence>
+        {showEndDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-hexagon-surface border border-hexagon-border rounded-2xl p-6 max-w-sm w-full shadow-2xl relative"
+            >
+              <h3 className="text-xl font-semibold text-hexagon-text-primary mb-2">End Teaching Session?</h3>
+              <p className="text-sm text-hexagon-text-secondary mb-6">Your progress, interactions, and mastery levels have been automatically saved. You can resume this topic later.</p>
+              
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setShowEndDialog(false)} className="flex-1 border-hexagon-border hover:bg-hexagon-surface-hover">
+                  Cancel
+                </Button>
+                <Button onClick={handleEnd} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium border-0">
+                  End Session
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

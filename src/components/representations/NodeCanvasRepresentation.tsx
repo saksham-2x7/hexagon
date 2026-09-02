@@ -1,6 +1,6 @@
 'use client';
 import { RepresentationProps } from '../../types/orchestration';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -33,9 +33,7 @@ const PremiumNode = ({ data }: { data: { label: string } }) => (
   </motion.div>
 );
 
-const nodeTypes = {
-  premium: PremiumNode,
-};
+const nodeTypes = { premium: PremiumNode };
 
 const initialNodes: Node[] = [
   { id: 'A', type: 'premium', position: { x: 250, y: 100 }, data: { label: 'Glycolysis' } },

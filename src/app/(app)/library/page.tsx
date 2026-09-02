@@ -289,7 +289,7 @@ export default function LibraryPage() {
             <div className="w-16 h-16 rounded-2xl bg-hexagon-surface border border-hexagon-border flex items-center justify-center">
               <Search className="w-7 h-7 text-hexagon-text-secondary/40" />
             </div>
-            <p className="text-hexagon-text-secondary text-sm">No items match <span className="text-hexagon-text-primary font-medium">"{query}"</span></p>
+            <p className="text-hexagon-text-secondary text-sm">No items match <span className="text-hexagon-text-primary font-medium">&quot;{query}&quot;</span></p>
             <button onClick={() => { setQuery(""); setActiveTab("all"); setSubject("All Subjects"); }}
               className="text-hexagon-accent text-xs hover:underline">Clear filters</button>
           </motion.div>

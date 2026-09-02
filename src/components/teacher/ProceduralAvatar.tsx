@@ -8,7 +8,7 @@ import * as THREE from 'three';
 
 // We use the same premium blazer avatar for both, as requested by the user.
 // (Because alex.glb is just a placeholder head, and they liked the blazer model).
-const MODEL_URL = '/models/aria.glb';
+
 
 interface ProceduralAvatarProps {
   lookAtBoard?: boolean;
@@ -22,7 +22,11 @@ export default function ProceduralAvatar({ lookAtBoard = false, pointAtBoard = f
   const isMale = profile?.tutorGender === 'male';
   const isSpeaking = teacherState === 'speaking' || teacherState === 'teaching' || teacherState === 'correcting' || teacherState === 'celebrating';
 
-  const { scene, animations } = useGLTF(MODEL_URL);
+    // The user says "Aria is female, Alex is male".
+  // The guy in the suit is in aria.glb (6MB). So that's the male (Alex).
+  // The Avaturn model is in alex.glb (3.6MB). So that's the female (Aria).
+  const modelUrl = isMale ? '/models/aria.glb' : '/models/alex.glb';
+  const { scene, animations } = useGLTF(modelUrl);
   
   // Clone scene so multiple instances don't share bones or materials
   const clonedScene = useMemo(() => scene.clone(), [scene]);
@@ -127,4 +131,6 @@ export default function ProceduralAvatar({ lookAtBoard = false, pointAtBoard = f
   );
 }
 
-useGLTF.preload(MODEL_URL);
+useGLTF.preload('/models/aria.glb');
+useGLTF.preload('/models/alex.glb');
+

@@ -23,12 +23,38 @@ export default function ProceduralAvatar({ lookAtBoard = false }: ProceduralAvat
   const { scene, animations } = useGLTF(modelUrl);
   
   // Clone scene so multiple instances don't share bones or materials
-  const clonedScene = useMemo(() => scene.clone(), [scene, modelUrl]);
+  const clonedScene = useMemo(() => {
+    const s = scene.clone();
+    
+    // Bulletproof dynamic scaling: measure the exact height of the loaded model
+    // and forcefully scale it to exactly 1.85 meters tall.
+    const box = new THREE.Box3().setFromObject(s);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    
+    if (size.y > 0) {
+      const targetHeight = 1.85;
+      const scaleFactor = targetHeight / size.y;
+      s.scale.set(scaleFactor, scaleFactor, scaleFactor);
+      // Offset so the lowest point (feet) rests at Y=0 relative to the scene
+      s.position.y = -box.min.y * scaleFactor;
+    }
+    
+    return s;
+  }, [scene, modelUrl]);
   
   const headRef = useRef<THREE.Object3D | null>(null);
   const spineRef = useRef<THREE.Object3D | null>(null);
 
   const { actions } = useAnimations(animations, clonedScene);
+  useEffect(() => {
+    if (clonedScene) {
+      const box = new THREE.Box3().setFromObject(clonedScene);
+      console.log('Avatar Bounding Box:', box);
+      console.log('Avatar Size:', box.getSize(new THREE.Vector3()));
+    }
+  }, [clonedScene]);
+
   
   useEffect(() => {
     if (actions) {
@@ -95,7 +121,7 @@ export default function ProceduralAvatar({ lookAtBoard = false }: ProceduralAvat
 
   return (
     <Suspense fallback={null}>
-      <group position={[0, -1.4, 0]} scale={isMale ? 1 : 0.01}>
+      <group position={[0, -1.4, 0]}>
         <primitive object={clonedScene} />
       </group>
     </Suspense>

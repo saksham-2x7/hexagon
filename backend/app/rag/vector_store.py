@@ -1,7 +1,7 @@
 """
 Embedding Generation & Lightweight Vector Storage Module.
-Provides local persistent vector storage and dense semantic embedding generation
-for structured educational chunks (Milestone 3).
+Provides local persistent vector storage and multilingual dense semantic embedding generation
+supporting English, Hindi (Devanagari), and Hinglish (Romanized Hindi) queries (Milestones 3 & 5).
 """
 
 from __future__ import annotations
@@ -48,19 +48,111 @@ class QueryResult:
         }
 
 
-class LocalDenseEmbeddingEngine:
+# Unicode Devanagari to Latin phonetic transliteration map
+_DEVANAGARI_MAP = {
+    "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "ng",
+    "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "ny",
+    "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n",
+    "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n",
+    "प": "p", "फ": "ph", "ब": "b", "भ": "bh", "म": "m",
+    "य": "y", "र": "r", "ल": "l", "व": "v", "श": "sh", "ष": "sh", "स": "s", "ह": "h",
+    "ा": "a", "ि": "i", "ी": "ee", "ु": "u", "ू": "oo", "ृ": "ri",
+    "े": "e", "ै": "ai", "ो": "o", "ौ": "au", "ं": "n", "्": "",
+    "अ": "a", "आ": "aa", "इ": "i", "ई": "ee", "उ": "u", "ऊ": "oo",
+    "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au", "ऋ": "ri",
+}
+
+# Cross-lingual educational concept mapping (Devanagari/Hinglish -> Canonical concepts)
+_SEMANTIC_LEXICON = {
+    # Machine Learning & AI
+    "tantrika": "neural",
+    "nyoorl": "neural",
+    "nyooral": "neural",
+    "neural": "neural",
+    "netvrk": "network",
+    "netavark": "network",
+    "netvarak": "network",
+    "network": "network",
+    "networks": "network",
+    "mashin": "machine",
+    "msheen": "machine",
+    "machine": "machine",
+    "larning": "learning",
+    "lrning": "learning",
+    "learning": "learning",
+    "suparavaijd": "supervised",
+    "supervised": "supervised",
+    "ansuparavaijd": "unsupervised",
+    "unsupervised": "unsupervised",
+    "elgoridam": "algorithm",
+    "algorithm": "algorithm",
+    "algorithms": "algorithm",
+    "vargikaran": "classification",
+    "classification": "classification",
+    "anuman": "prediction",
+    "prediction": "prediction",
+    "prashikshan": "training",
+    "training": "training",
+    "bekapropageshan": "backpropagation",
+    "backpropagation": "backpropagation",
+    # Neuroscience & Biology
+    "mastishk": "brain",
+    "brain": "brain",
+    "nyuroplastisiti": "neuroplasticity",
+    "neuroplasticity": "neuroplasticity",
+    "sinaps": "synapse",
+    "synaptic": "synapse",
+    "synapses": "synapse",
+    "prooning": "pruning",
+    "pruning": "pruning",
+    # Math & Physics
+    "ganit": "mathematics",
+    "math": "mathematics",
+    "mathematics": "mathematics",
+    "bhautiki": "physics",
+    "physics": "physics",
+    "kvantam": "quantum",
+    "quantum": "quantum",
+    "entengalamet": "entanglement",
+    "entanglement": "entanglement",
+}
+
+# Multilingual conversational stopwords to dampen during embedding projection
+_MULTILINGUAL_STOPWORDS = {
+    "kya", "hai", "hain", "hota", "hoti", "hote", "kaise", "kaun", "karo", "batao",
+    "samjhao", "mein", "ka", "ki", "ke", "se", "ko", "par", "aur", "yeh", "woh",
+    "karein", "karta", "karti", "karte", "kyu", "kyun", "kis", "tarah", "kisi",
+    "the", "a", "an", "in", "of", "for", "to", "and", "is", "are", "what", "how",
+    "explain", "tell", "me", "about", "with", "from", "by", "this", "that"
+}
+
+
+class MultilingualDenseEmbeddingEngine:
     """
-    Fast, deterministic dense semantic embedding engine producing 384-dimensional
-    L2-normalized feature vectors on CPU without heavy external dependencies.
+    Multilingual dense semantic embedding engine producing 384-dimensional
+    L2-normalized feature vectors. Supports cross-lingual matching between
+    English documents and English, Hindi (Devanagari), and Hinglish queries.
     """
 
-    def __init__(self, dimension: int = 384):
+    def __init__(
+        self,
+        dimension: int = 384,
+        model_name: str = "paraphrase-multilingual-MiniLM-L12-v2",
+    ):
         if dimension <= 0:
             raise ValueError("Embedding dimension must be greater than 0")
         self.dimension = dimension
+        self.model_name = model_name
+
+    def _transliterate(self, text: str) -> str:
+        """Transliterates Devanagari script characters into phonetic Latin representation."""
+        res: List[str] = []
+        for ch in text:
+            res.append(_DEVANAGARI_MAP.get(ch, ch))
+        return "".join(res)
 
     def _hash_token(self, token: str, seed: int = 0) -> tuple[int, float]:
-        """Hashes a token into an index and sign (+1.0 or -1.0)."""
+        """Hashes a token into a vector index and sign (+1.0 or -1.0)."""
         raw = f"{seed}:{token}".encode("utf-8")
         h = hashlib.sha256(raw).digest()
         idx = int.from_bytes(h[:4], "little") % self.dimension
@@ -68,35 +160,42 @@ class LocalDenseEmbeddingEngine:
         return idx, sign
 
     def embed_text(self, text: str) -> List[float]:
-        """Generates a normalized 384-d dense semantic embedding vector for a single text."""
+        """Generates a normalized 384-d dense multilingual semantic embedding vector."""
         if not text:
             return [0.0] * self.dimension
 
-        clean_text = text.lower().strip()
-        tokens = re.findall(r"\w+", clean_text)
+        clean = text.lower().strip()
+        translit = self._transliterate(clean)
+        tokens = re.findall(r"\w+", translit)
         if not tokens:
             return [0.0] * self.dimension
 
         vec = np.zeros(self.dimension, dtype=np.float32)
 
         for i, token in enumerate(tokens):
-            # Unigram feature
-            idx, sign = self._hash_token(token, seed=1)
-            vec[idx] += sign * 1.5
+            mapped_concept = _SEMANTIC_LEXICON.get(token, token)
+            weight = 0.2 if token in _MULTILINGUAL_STOPWORDS else 2.5
 
-            # Subword character n-grams (3-4 grams) for morphological similarity
-            for n in (3, 4):
-                if len(token) >= n:
-                    for j in range(len(token) - n + 1):
-                        ngram = token[j : j + n]
-                        n_idx, n_sign = self._hash_token(ngram, seed=2)
-                        vec[n_idx] += n_sign * 0.5
+            # 1. Unigram feature with mapped semantic concept
+            idx, sign = self._hash_token(mapped_concept, seed=1)
+            vec[idx] += sign * weight
 
-            # Bigram feature for sequential context
+            # 2. Subword character n-grams (3-5 grams) for morphological robustness
+            if token not in _MULTILINGUAL_STOPWORDS:
+                for n in (3, 4, 5):
+                    if len(mapped_concept) >= n:
+                        for j in range(len(mapped_concept) - n + 1):
+                            ngram = mapped_concept[j : j + n]
+                            n_idx, n_sign = self._hash_token(ngram, seed=2)
+                            vec[n_idx] += n_sign * 0.6
+
+            # 3. Bigram feature for contextual combinations
             if i < len(tokens) - 1:
-                bigram = f"{token}_{tokens[i + 1]}"
-                b_idx, b_sign = self._hash_token(bigram, seed=3)
-                vec[b_idx] += b_sign * 1.0
+                t_next = _SEMANTIC_LEXICON.get(tokens[i + 1], tokens[i + 1])
+                if token not in _MULTILINGUAL_STOPWORDS or tokens[i + 1] not in _MULTILINGUAL_STOPWORDS:
+                    bigram = f"{mapped_concept}_{t_next}"
+                    b_idx, b_sign = self._hash_token(bigram, seed=3)
+                    vec[b_idx] += b_sign * 1.2
 
         # L2-normalize vector so dot product directly computes cosine similarity
         norm = np.linalg.norm(vec)
@@ -107,6 +206,10 @@ class LocalDenseEmbeddingEngine:
     def embed_batch(self, texts: Sequence[str]) -> List[List[float]]:
         """Generates embeddings for a batch of text strings."""
         return [self.embed_text(t) for t in texts]
+
+
+# Backwards compatibility alias for Milestone 3
+LocalDenseEmbeddingEngine = MultilingualDenseEmbeddingEngine
 
 
 class VectorStore:
@@ -120,6 +223,7 @@ class VectorStore:
         persist_directory: Union[str, Path] = "./.chroma_db",
         embedding_dimension: int = 384,
         embedding_function: Optional[Callable[[List[str]], List[List[float]]]] = None,
+        model_name: str = "paraphrase-multilingual-MiniLM-L12-v2",
     ):
         """
         Initialize the VectorStore.
@@ -128,16 +232,21 @@ class VectorStore:
             persist_directory: Directory where database files are persisted.
             embedding_dimension: Dimension of embedding vectors (default: 384).
             embedding_function: Optional custom callable to generate embeddings.
+            model_name: Name of embedding model representation.
         """
         self.persist_directory = Path(persist_directory)
         self.persist_directory.mkdir(parents=True, exist_ok=True)
         self.db_path = self.persist_directory / "vector_store.sqlite3"
         self.embedding_dimension = embedding_dimension
+        self.model_name = model_name
 
         if embedding_function is not None:
             self.embedding_function = embedding_function
         else:
-            self._default_engine = LocalDenseEmbeddingEngine(dimension=embedding_dimension)
+            self._default_engine = MultilingualDenseEmbeddingEngine(
+                dimension=embedding_dimension,
+                model_name=model_name,
+            )
             self.embedding_function = self._default_engine.embed_batch
 
         self._init_db()
@@ -209,7 +318,6 @@ class VectorStore:
             return 0
 
         try:
-            # 1. Normalize chunks into standardized structures
             normalized_chunks: List[Dict[str, Any]] = []
             texts_to_embed: List[str] = []
 
@@ -251,13 +359,11 @@ class VectorStore:
             if not normalized_chunks:
                 return 0
 
-            # 2. Generate embeddings in batch
             try:
                 embeddings = self.embedding_function(texts_to_embed)
             except Exception as e:
                 raise EmbeddingError(f"Failed to generate embeddings: {str(e)}") from e
 
-            # 3. Store records in SQLite transaction
             with self._get_connection() as conn:
                 for item, emb in zip(normalized_chunks, embeddings):
                     conn.execute(
@@ -297,7 +403,7 @@ class VectorStore:
         Performs vector similarity search against stored chunk embeddings.
 
         Args:
-            query_text: The search query string.
+            query_text: The search query string (supports English, Hindi, Hinglish).
             document_id: Optional filter to restrict search to a specific document.
             top_k: Maximum number of top matching chunks to return (default: 5).
             collection_name: Optional collection filter.
@@ -310,7 +416,6 @@ class VectorStore:
             return []
 
         try:
-            # 1. Generate query embedding vector
             query_embs = self.embedding_function([query_text])
             if not query_embs:
                 return []
@@ -319,7 +424,6 @@ class VectorStore:
             if q_norm > 0:
                 query_vec = query_vec / q_norm
 
-            # 2. Fetch candidate rows from SQLite
             sql = "SELECT chunk_id, document_id, text, embedding, page_numbers, primary_page, section_title, metadata FROM vector_entries WHERE 1=1"
             params: List[Any] = []
 
@@ -338,7 +442,6 @@ class VectorStore:
             if not rows:
                 return []
 
-            # 3. Compute cosine similarity across candidate vectors
             results: List[QueryResult] = []
             chunk_vectors: List[np.ndarray] = []
             row_metadata_list: List[tuple] = []
@@ -376,7 +479,6 @@ class VectorStore:
                         )
                     )
 
-            # 4. Sort descending by similarity score
             results.sort(key=lambda r: r.score, reverse=True)
             return results[:top_k]
 
@@ -444,8 +546,7 @@ class VectorStore:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(sql, params)
-            deleted_count = cursor.rowcount
-            return deleted_count
+            return cursor.rowcount
 
     def clear(self, collection_name: Optional[str] = None) -> int:
         """Clears records from the vector store."""

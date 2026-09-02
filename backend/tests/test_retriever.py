@@ -1,6 +1,6 @@
 """
-Unit and integration tests for RAGRetriever and GroundedContext formatting (Milestone 4).
-Verifies source header formatting, similarity score filtering, hallucination prevention,
+Unit and integration tests for RAGRetriever and GroundedContext formatting (Milestone 4 & 5).
+Verifies source header formatting, similarity score filtering, multilingual retrieval (Hindi/Hinglish),
 and end-to-end RAG pipeline from PDF to prompt context.
 """
 
@@ -153,6 +153,48 @@ def test_retrieve_grounded_context_multi_page_chunk(populated_vector_store):
 
 
 # ----------------------------------------------------------------------
+# Multilingual Grounding Tests (Milestone 5)
+# ----------------------------------------------------------------------
+
+def test_multilingual_hindi_devanagari_retrieval(populated_vector_store):
+    """Test cross-lingual retrieval with Hindi (Devanagari) query against English chunks."""
+    store, doc_id = populated_vector_store
+    retriever = RAGRetriever(vector_store=store, default_top_k=2)
+
+    # Hindi query for neuroplasticity
+    context = retriever.retrieve_grounded_context(
+        query="मानव मस्तिष्क में न्यूरोप्लास्टिसिटी और तंत्रिका संबंध क्या है?",
+        document_id=doc_id,
+    )
+
+    assert context.has_context is True
+    assert context.retrieved_count > 0
+    top_source = context.sources[0]
+    assert top_source.chunk_id == "chunk_neuro_1"
+    assert "Neuroplasticity" in top_source.text
+    assert top_source.primary_page == 1
+
+
+def test_multilingual_hinglish_retrieval(populated_vector_store):
+    """Test cross-lingual retrieval with Hinglish query against English chunks."""
+    store, doc_id = populated_vector_store
+    retriever = RAGRetriever(vector_store=store, default_top_k=2)
+
+    # Hinglish query for synaptic pruning
+    context = retriever.retrieve_grounded_context(
+        query="Brain mein synaptic pruning process se connections kaise strengthen hote hain?",
+        document_id=doc_id,
+    )
+
+    assert context.has_context is True
+    assert context.retrieved_count > 0
+    top_source = context.sources[0]
+    assert top_source.chunk_id == "chunk_neuro_2"
+    assert "Synaptic pruning" in top_source.text
+    assert top_source.primary_page == 2
+
+
+# ----------------------------------------------------------------------
 # Score Thresholding & Fallback Tests
 # ----------------------------------------------------------------------
 
@@ -161,7 +203,6 @@ def test_score_threshold_filters_unrelated_queries(populated_vector_store):
     store, doc_id = populated_vector_store
     retriever = RAGRetriever(vector_store=store)
 
-    # Impossibly high threshold to simulate off-topic query filtering
     context = retriever.retrieve_grounded_context(
         query="How to repair an automobile transmission?",
         document_id=doc_id,
@@ -230,17 +271,17 @@ def test_grounded_context_to_dict_serialization(populated_vector_store):
 
 
 # ----------------------------------------------------------------------
-# End-to-End Pipeline (Milestones 1 -> 2 -> 3 -> 4)
+# End-to-End Pipeline (Milestones 1 -> 2 -> 3 -> 4 -> 5)
 # ----------------------------------------------------------------------
 
-def test_full_pipeline_m1_m2_m3_m4(tmp_path):
+def test_full_pipeline_m1_to_m5_cross_lingual(tmp_path):
     """
-    Test full end-to-end RAG ingestion and retrieval pipeline:
-    1. Educational PDF creation (Milestone 1)
-    2. Text extraction (Milestone 1)
-    3. Semantic chunking with headers & pages (Milestone 2)
-    4. VectorStore embedding & persistence (Milestone 3)
-    5. Prompt-ready GroundedContext retrieval with citations (Milestone 4)
+    Test full end-to-end multilingual RAG pipeline:
+    1. Create English textbook PDF
+    2. Extract text (Milestone 1)
+    3. Semantic chunking (Milestone 2)
+    4. Multilingual VectorStore embedding (Milestone 3 & 5)
+    5. Retrieve with Hindi query (Milestone 4 & 5)
     """
     # 1. Create synthetic textbook PDF
     buf = io.BytesIO()
@@ -256,24 +297,24 @@ def test_full_pipeline_m1_m2_m3_m4(tmp_path):
     c.save()
     pdf_bytes = buf.getvalue()
 
-    # 2. Extract text (Milestone 1)
+    # 2. Extract text
     extracted_doc = DocumentProcessor.extract_text(pdf_bytes, file_name="quantum_physics.pdf", file_type="pdf")
     assert extracted_doc.total_pages == 2
 
-    # 3. Semantic chunking (Milestone 2)
+    # 3. Semantic chunking
     chunker = SemanticChunker(chunk_size_chars=200, chunk_overlap_chars=40)
     chunked_doc = chunker.chunk_document(extracted_doc)
     assert chunked_doc.total_chunks >= 2
 
-    # 4. Ingest into VectorStore (Milestone 3)
+    # 4. Ingest into VectorStore
     store = VectorStore(persist_directory=tmp_path)
     doc_id = "doc_quantum_phy_301"
     stored_count = store.store_chunks(document_id=doc_id, chunks=chunked_doc.chunks)
     assert stored_count == chunked_doc.total_chunks
 
-    # 5. Retrieve grounded context (Milestone 4)
+    # 5. Retrieve using Hindi query
     context = retrieve_grounded_context(
-        query="Explain quantum entanglement and Bell tests",
+        query="क्वांटम एंटैंगलमेंट और बेल टेस्ट्स क्या हैं?",
         document_id=doc_id,
         top_k=2,
         vector_store=store,

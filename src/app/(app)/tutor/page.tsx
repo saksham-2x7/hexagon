@@ -61,7 +61,7 @@ export default function TutorPage() {
       
       {/* LEFT: Full Vertical Avatar */}
       <div className="w-2/5 h-full relative border-r border-hexagon-border overflow-hidden bg-hexagon-surface">
-        <Canvas camera={{ position: [0, 0.1, 1.5], fov: 35 }} className="w-full h-full">
+        <Canvas camera={{ position: [0, 0.2, 2.5], fov: 40 }} className="w-full h-full">
           <ambientLight intensity={0.8} />
           <directionalLight position={[2, 5, 2]} intensity={1.5} color="#ffffff" />
           <directionalLight position={[-3, 2, -2]} intensity={1} color="#00FF9D" />
@@ -71,7 +71,7 @@ export default function TutorPage() {
 
           <ContactShadows position={[0, -1.6, 0]} opacity={0.7} scale={10} blur={2} far={4} />
           <OrbitControls 
-             enableZoom={false} 
+             enableZoom={true} minDistance={1.5} maxDistance={5} 
              enablePan={false} 
              maxPolarAngle={Math.PI/2} 
              minPolarAngle={Math.PI/3}

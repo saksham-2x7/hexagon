@@ -1,7 +1,8 @@
 'use client';
+import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
-export default function TextRepresentation() {
+export default function TextRepresentation({ context }: RepresentationProps) {
   return (
     <div className="w-full h-full flex items-center justify-center bg-black p-12">
       <motion.div 

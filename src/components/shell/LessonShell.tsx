@@ -1,20 +1,18 @@
 'use client';
 import { ReactNode } from 'react';
 import LessonHUD from './LessonHUD';
-import AITeacherPiP from '../avatar/AITeacherPiP';
-import CustomCursor from '../ui/CustomCursor';
+import AITeacherPiP from '../teacher/AITeacherPiP';
+import MockAIEngine from './MockAIEngine';
 
 export default function LessonShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen w-full bg-black text-white overflow-hidden font-sans relative">
-      <CustomCursor />
-      <main className="flex-1 h-full relative z-0">
-        {children}
-      </main>
-      
-      {/* Overlay Layer */}
+    <div className="w-screen h-screen bg-background overflow-hidden relative text-foreground">
       <LessonHUD />
+      <div className="absolute inset-0 z-0">
+        {children}
+      </div>
       <AITeacherPiP />
+      <MockAIEngine />
     </div>
   );
 }

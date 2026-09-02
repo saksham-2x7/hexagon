@@ -1,21 +1,26 @@
 import { create } from 'zustand';
-import { AIIntentState, RepresentationId } from '../types/orchestration';
+import { AIIntentState, LessonPhase, RepresentationId } from '../types/orchestration';
+import { TeacherState } from '../types/teacher';
 
-type AIIntentStore = AIIntentState & {
-  setRepresentation: (rep: RepresentationId) => void;
+interface AIIntentStore extends AIIntentState {
+  teacherState: TeacherState;
+  teacherMessage: string;
+  setRepresentation: (id: RepresentationId) => void;
+  setLessonPhase: (phase: LessonPhase) => void;
   setScaffoldLevel: (level: number) => void;
-  setLessonPhase: (phase: AIIntentState['lessonPhase']) => void;
-  setFocusTarget: (targetId: string | undefined) => void;
-};
+  setTeacherState: (state: TeacherState, message: string) => void;
+}
 
 export const useAIIntentStore = create<AIIntentStore>((set) => ({
   activeRepresentation: 'webgl',
-  scaffoldLevel: 1,
-  schemaData: null,
   lessonPhase: 'Explain',
-  focusTargetId: undefined,
-  setRepresentation: (rep) => set({ activeRepresentation: rep }),
-  setScaffoldLevel: (level) => set({ scaffoldLevel: level }),
+  focusTargetId: null,
+  scaffoldLevel: 3, // High scaffolding
+  teacherState: 'idle',
+  teacherMessage: '',
+
+  setRepresentation: (id) => set({ activeRepresentation: id }),
   setLessonPhase: (phase) => set({ lessonPhase: phase }),
-  setFocusTarget: (targetId) => set({ focusTargetId: targetId }),
+  setScaffoldLevel: (level) => set({ scaffoldLevel: level }),
+  setTeacherState: (state, message) => set({ teacherState: state, teacherMessage: message }),
 }));

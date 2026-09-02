@@ -1,9 +1,10 @@
 'use client';
+import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
 
-export default function ManipulationRepresentation() {
+export default function ManipulationRepresentation({ context }: RepresentationProps) {
   const [positions] = useState({ a: { x: -100, y: 0 }, b: { x: 100, y: 0 } });
   const dispatch = useSemanticDispatcher(s => s.dispatchAction);
 

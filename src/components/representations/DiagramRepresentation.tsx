@@ -1,7 +1,8 @@
 'use client';
+import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
-export default function DiagramRepresentation() {
+export default function DiagramRepresentation({ context }: RepresentationProps) {
   return (
     <div className="w-full h-full flex items-center justify-center bg-black">
       <div className="relative w-96 h-96">

@@ -1,4 +1,5 @@
 'use client';
+import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
 const events = [
@@ -8,7 +9,7 @@ const events = [
   { id: 4, year: '2040', title: 'Singularity', active: false },
 ];
 
-export default function TimelineRepresentation() {
+export default function TimelineRepresentation({ context }: RepresentationProps) {
   return (
     <div className="w-full h-full flex items-center justify-center bg-black overflow-hidden relative">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent pointer-events-none" />

@@ -1,10 +1,10 @@
 import { ComponentType } from 'react';
-import { RepresentationId, RepresentationMetadata } from '../../types/orchestration';
+import { RepresentationId, RepresentationMetadata, RepresentationProps } from '../../types/orchestration';
 import dynamic from 'next/dynamic';
 
 type RepresentationEntry = {
   metadata: RepresentationMetadata;
-  component: ComponentType<unknown>;
+  component: ComponentType<RepresentationProps>;
 };
 
 const registry: Record<string, RepresentationEntry> = {

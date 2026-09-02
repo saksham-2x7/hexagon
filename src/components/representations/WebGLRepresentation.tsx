@@ -1,4 +1,5 @@
 'use client';
+import { RepresentationProps } from '../../types/orchestration';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, Icosahedron, ContactShadows, Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
@@ -15,7 +16,7 @@ function ParallaxCamera() {
   return null;
 }
 
-export default function WebGLRepresentation() {
+export default function WebGLRepresentation({ context }: RepresentationProps) {
   const setCameraAngle = useInteractionStore((state) => state.setCameraAngle);
   const dispatchAction = useSemanticDispatcher((state) => state.dispatchAction);
 

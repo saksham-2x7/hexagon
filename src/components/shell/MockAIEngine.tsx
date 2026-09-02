@@ -3,16 +3,16 @@ import { useEffect, useRef } from 'react';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
 
 const TEACHING_SEQUENCE = [
-  { delay: 3000, phase: 'Explain', rep: 'text', msg: 'Welcome. Today we are exploring the concept of Hexagonal Architecture.' },
-  { delay: 8000, phase: 'Observe', rep: 'diagram', msg: 'Notice the core logic is surrounded by adapters. This is the essence of ports and adapters.' },
-  { delay: 15000, phase: 'Construct', rep: 'manipulation', msg: 'Try assembling the components. Drag component A and B into the core.' },
-  { delay: 25000, phase: 'Resolve', rep: 'node', msg: 'By separating concerns, we achieve this concept graph.' },
-  { delay: 35000, phase: 'Evaluate', rep: 'graph', msg: 'Look at how this improves our testing velocity over time.' },
-  { delay: 45000, phase: 'Explain', rep: 'webgl', msg: 'In a 3D structural sense, it looks like this floating module.' }
+  { delay: 2000, phase: 'Explain', rep: 'webgl', teacherState: 'speaking', msg: 'Welcome. Today we are exploring neural network weight updates.' },
+  { delay: 8000, phase: 'Observe', rep: 'node', teacherState: 'speaking', msg: 'Notice how the weights flow between these nodes.' },
+  { delay: 15000, phase: 'Construct', rep: 'manipulation', teacherState: 'waiting', msg: 'Try adjusting the learning rate slider.' },
+  { delay: 25000, phase: 'Resolve', rep: 'diagram', teacherState: 'speaking', msg: 'By tuning it correctly, convergence is achieved.' },
+  { delay: 35000, phase: 'Evaluate', rep: 'graph', teacherState: 'speaking', msg: 'Look at the loss curve dropping over time.' },
+  { delay: 45000, phase: 'Explain', rep: 'text', teacherState: 'idle', msg: 'Great job completing this interactive module.' }
 ];
 
 export default function MockAIEngine() {
-  const { setRepresentation, setLessonPhase } = useAIIntentStore();
+  const { setRepresentation, setLessonPhase, setTeacherState } = useAIIntentStore();
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -21,12 +21,12 @@ export default function MockAIEngine() {
 
     TEACHING_SEQUENCE.forEach((step) => {
       setTimeout(() => {
-        setLessonPhase(step.phase as import('../../types/orchestration').AIIntentState['lessonPhase']);
-        setRepresentation(step.rep as import('../../types/orchestration').RepresentationId);
-        // Here we could dispatch an event to the teacher to say step.msg
+        setLessonPhase(step.phase as any);
+        setRepresentation(step.rep as any);
+        setTeacherState(step.teacherState as any, step.msg);
       }, step.delay);
     });
-  }, [setRepresentation, setLessonPhase]);
+  }, [setRepresentation, setLessonPhase, setTeacherState]);
 
   return null;
 }

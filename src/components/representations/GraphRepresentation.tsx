@@ -1,7 +1,8 @@
 'use client';
+import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
-export default function GraphRepresentation() {
+export default function GraphRepresentation({ context }: RepresentationProps) {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center bg-black">
       <div className="w-2/3 h-2/3 border-l-2 border-b-2 border-white/20 relative">

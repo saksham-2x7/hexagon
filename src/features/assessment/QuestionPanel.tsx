@@ -109,7 +109,7 @@ export default function QuestionPanel({ question }: { question: QuestionProps })
                 <X size={18} /> Needs Review
               </div>
               <p className="text-sm text-destructive/80 leading-relaxed">
-                Your answer suggests you might be confusing the direction of the propagation. Let's test your idea in the simulation.
+                Your answer suggests you might be confusing the direction of the propagation. Let&apos;s test your idea in the simulation.
               </p>
             </div>
             <div className="flex justify-between items-center">

@@ -3,7 +3,7 @@ import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 
-export default function TextRepresentation({ context }: RepresentationProps) {
+export default function TextRepresentation({ context: _context }: RepresentationProps) {
   return (
     <div className="w-full h-full flex items-center justify-center bg-background text-foreground p-12">
       <motion.div 

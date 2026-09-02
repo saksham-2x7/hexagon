@@ -16,7 +16,7 @@ function ParallaxCamera() {
   return null;
 }
 
-export default function WebGLRepresentation({ context }: RepresentationProps) {
+export default function WebGLRepresentation({ context: _context }: RepresentationProps) {
   const setCameraAngle = useInteractionStore((state) => state.setCameraAngle);
   const dispatchAction = useSemanticDispatcher((state) => state.dispatchAction);
 

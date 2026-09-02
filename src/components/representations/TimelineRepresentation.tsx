@@ -2,7 +2,7 @@
 import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
-export default function TimelineRepresentation({ context }: RepresentationProps) {
+export default function TimelineRepresentation({ context: _context }: RepresentationProps) {
   const events = [
     { year: 1943, title: "McCulloch & Pitts Model", desc: "First mathematical model of a neural network." },
     { year: 1957, title: "The Perceptron", desc: "Frank Rosenblatt invents the Perceptron algorithm." },

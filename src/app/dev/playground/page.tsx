@@ -5,9 +5,21 @@ import { RepresentationId, LessonPhase } from '../../../types/orchestration';
 import { TeacherState } from '../../../types/teacher';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { useShallow } from 'zustand/react/shallow';
 
 export default function DevPlayground() {
-  const { setRepresentation, setLessonPhase, setTeacherState, activeRepresentation, lessonPhase, teacherState, teacherMessage } = useAIIntentStore();
+  const { setRepresentation, setLessonPhase, setTeacherState, activeRepresentation, lessonPhase, teacherState, teacherMessage } = useAIIntentStore(
+    useShallow(state => ({
+      setRepresentation: state.setRepresentation,
+      setLessonPhase: state.setLessonPhase,
+      setTeacherState: state.setTeacherState,
+      activeRepresentation: state.activeRepresentation,
+      lessonPhase: state.lessonPhase,
+      teacherState: state.teacherState,
+      teacherMessage: state.teacherMessage
+    }))
+  );
+  
   const events = useSemanticDispatcher(state => state.events);
 
   return (

@@ -2,7 +2,7 @@
 import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
-export default function DiagramRepresentation({ context }: RepresentationProps) {
+export default function DiagramRepresentation({ context: _context }: RepresentationProps) {
   return (
     <div className="w-full h-full flex items-center justify-center bg-background p-12">
       <div className="relative w-full max-w-4xl h-96 border border-white/10 rounded-2xl bg-card overflow-hidden p-8 flex items-center justify-between">

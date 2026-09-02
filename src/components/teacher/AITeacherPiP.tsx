@@ -38,7 +38,7 @@ export default function AITeacherPiP() {
             className="max-w-[400px] bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl pointer-events-auto"
           >
             <p className="text-white/90 text-sm leading-relaxed font-medium">
-              "{captionText}"
+              &quot;{captionText}&quot;
             </p>
           </motion.div>
         )}

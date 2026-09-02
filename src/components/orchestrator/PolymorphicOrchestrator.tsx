@@ -3,14 +3,17 @@ import { Suspense, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
 import { getRepresentation } from '../../lib/registry/RepresentationRegistry';
+import { useShallow } from 'zustand/react/shallow';
 
 export default function PolymorphicOrchestrator() {
-  const context = useAIIntentStore(state => ({
-    activeRepresentation: state.activeRepresentation,
-    lessonPhase: state.lessonPhase,
-    focusTargetId: state.focusTargetId,
-    scaffoldLevel: state.scaffoldLevel
-  }));
+  const context = useAIIntentStore(
+    useShallow(state => ({
+      activeRepresentation: state.activeRepresentation,
+      lessonPhase: state.lessonPhase,
+      focusTargetId: state.focusTargetId,
+      scaffoldLevel: state.scaffoldLevel
+    }))
+  );
 
   const Representation = useMemo(() => {
     const entry = getRepresentation(context.activeRepresentation);
@@ -20,7 +23,7 @@ export default function PolymorphicOrchestrator() {
   if (!Representation) {
     return (
       <div className="w-full h-full flex items-center justify-center text-red-500 font-mono">
-        Error: Unknown Representation '{context.activeRepresentation}'
+        Error: Unknown Representation &apos;{context.activeRepresentation}&apos;
       </div>
     );
   }

@@ -2,11 +2,11 @@
 import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 
-export default function GraphRepresentation({ context }: RepresentationProps) {
+export default function GraphRepresentation({ context: _context }: RepresentationProps) {
   // Mock Data for Loss Curve
   const points = Array.from({ length: 50 }, (_, i) => ({
     x: i * (100 / 50),
-    y: Math.max(10, 90 * Math.exp(-0.1 * i) + Math.random() * 5)
+    y: Math.max(10, 90 * Math.exp(-0.1 * i) + Math.sin(i) * 5)
   }));
 
   const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;

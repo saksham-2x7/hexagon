@@ -3,8 +3,8 @@ import { RepresentationProps } from '../../types/orchestration';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-export default function ManipulationRepresentation({ context }: RepresentationProps) {
-  const [pieces, setPieces] = useState([
+export default function ManipulationRepresentation({ context: _context }: RepresentationProps) {
+  const [pieces] = useState([
     { id: '1', label: 'Input Layer', x: -200, y: -100 },
     { id: '2', label: 'Hidden Layer', x: -200, y: 0 },
     { id: '3', label: 'Output Layer', x: -200, y: 100 },
@@ -19,7 +19,7 @@ export default function ManipulationRepresentation({ context }: RepresentationPr
       </div>
 
       {/* Draggable Pieces */}
-      {pieces.map((piece, i) => (
+      {pieces.map((piece) => (
         <motion.div
           key={piece.id}
           drag

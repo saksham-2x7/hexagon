@@ -53,7 +53,7 @@ const defaultEdgeOptions = {
   style: { stroke: 'rgba(255,255,255,0.8)', strokeWidth: 2, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' },
 };
 
-export default function NodeCanvasRepresentation({ context }: RepresentationProps) {
+export default function NodeCanvasRepresentation({ context: _context }: RepresentationProps) {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const dispatchAction = useSemanticDispatcher((state) => state.dispatchAction);

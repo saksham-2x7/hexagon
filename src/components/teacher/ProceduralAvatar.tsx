@@ -163,7 +163,9 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
   const smoothedConsonantRef = useRef(0);
 
   // Frame animation loop: Head tracking, breathing, natural blinking, real-time Web Audio API lip-sync
-  useFrame((state, delta) => {
+  useFrame((state, rawDelta) => {
+    // CLAMP DELTA: Prevents explosive lerp overshoots (features flying out of face) when switching browser tabs
+    const delta = Math.min(rawDelta, 0.05);
     const t = state.clock.elapsedTime;
 
     // 1. Natural Breathing (Spine & Neck subtle expansion)

@@ -153,11 +153,54 @@ export default function TutorPage() {
 
   const { playTestSpeech } = useAudioLipSync();
 
-  // Voice Speech Engine powered by Web Audio API
-  const speakVoice = (_text: string, durationMs: number = 3800) => {
-    if (voiceEnabled) {
+  // Voice Speech Engine powered by standard browser TTS
+  const speakVoice = (text: string, durationMs: number = 3800) => {
+    if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
-        playTestSpeech(Math.max(durationMs / 1000 - 0.2, 0.8));
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        const voices = window.speechSynthesis.getVoices();
+        // Base filter by language (support Hindi / English based on profile)
+        const langPrefix = (language.toLowerCase() === 'hi') ? 'hi' : 'en';
+        let localeVoices = voices.filter(v => v.lang.toLowerCase().startsWith(langPrefix));
+        if (localeVoices.length === 0) localeVoices = voices.filter(v => v.lang.startsWith('en'));
+
+        // Identify male/female voices by common OS names
+        const femaleNames = ['zira', 'samantha', 'victoria', 'susan', 'hazel', 'google us english', 'female', 'aditi'];
+        const maleNames = ['david', 'mark', 'richard', 'alex', 'daniel', 'google uk english male', 'male', 'ravi'];
+
+        // Filter voices matching the requested gender
+        let genderMatch = localeVoices.filter(v => {
+          const lowerName = v.name.toLowerCase();
+          return isMale 
+            ? maleNames.some(n => lowerName.includes(n))
+            : femaleNames.some(n => lowerName.includes(n));
+        });
+
+        // Prioritize ultra-realistic "Natural" or "Online" neural voices (Edge/Chrome)
+        const premiumVoices = genderMatch.filter(v => 
+          v.name.toLowerCase().includes('natural') || 
+          v.name.toLowerCase().includes('online')
+        );
+
+        if (premiumVoices.length > 0) {
+          utterance.voice = premiumVoices[0];
+        } else if (genderMatch.length > 0) {
+          utterance.voice = genderMatch[0];
+        } else if (localeVoices.length > 0) {
+          // Safe fallback: pick the first one that ISN'T explicitly the wrong gender
+          const safeFallback = localeVoices.find(v => {
+            const lowerName = v.name.toLowerCase();
+            return isMale 
+              ? !femaleNames.some(n => lowerName.includes(n)) 
+              : !maleNames.some(n => lowerName.includes(n));
+          });
+          utterance.voice = safeFallback || localeVoices[0];
+        }
+        
+        utterance.rate = 1.05;
+        window.speechSynthesis.speak(utterance);
       } catch (e) {
         console.warn('Speech audio engine info:', e);
       }
@@ -363,8 +406,9 @@ export default function TutorPage() {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => {
-                  setTeacherState('teaching', 'Demonstrating real-time audio lip-sync and ActorCore gesture mapping.');
-                  playTestSpeech(3.5);
+                  const text = 'Demonstrating real-time audio lip-sync and ActorCore gesture mapping.';
+                  setTeacherState('teaching', text);
+                  speakVoice(text, 3500);
                 }}
                 className="bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-accent hover:bg-hexagon-accent/25 px-3 py-1.5 rounded-full backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium shadow-sm hover:scale-105 active:scale-95"
                 title="Test real-time Web Audio API lip-sync"
@@ -521,12 +565,21 @@ export default function TutorPage() {
             </div>
 
             {/* Interactive Response Terminal */}
-            <div className="w-[320px] bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between shadow-md">
+            <div className="w-[320px] bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-5 flex flex-col justify-between shadow-md">
+              <div className="flex items-center gap-2 border-b border-hexagon-border/60 pb-3 mb-2 shrink-0">
+                <div className="p-1.5 rounded-lg bg-gray-800 text-gray-400">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Student Terminal
+                </span>
+              </div>
+
               <div className="flex-1 overflow-y-auto mb-3 space-y-2 scrollbar-hide flex flex-col justify-end">
                 {messages.length === 0 ? (
                   <div className="text-xs text-gray-500 text-center py-4 flex flex-col items-center gap-1">
                     <Compass className="w-4 h-4 text-gray-600" />
-                    <span>Answer the teacher&apos;s question or ask anything</span>
+                    <span>Answer or ask anything</span>
                   </div>
                 ) : (
                   messages.slice(-3).map((m, i) => (
@@ -534,8 +587,8 @@ export default function TutorPage() {
                       key={i} 
                       className={`p-2.5 rounded-2xl text-xs max-w-[92%] leading-relaxed ${
                         m.role === 'user' 
-                          ? 'bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-text-primary ml-auto' 
-                          : 'bg-hexagon-surface border border-hexagon-border text-gray-300 mr-auto'
+                          ? 'bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-text-primary ml-auto rounded-tr-sm' 
+                          : 'bg-hexagon-surface border border-hexagon-border text-gray-300 mr-auto rounded-tl-sm'
                       }`}
                     >
                       {m.text}
@@ -545,21 +598,20 @@ export default function TutorPage() {
               </div>
 
               {/* Input field */}
-              <div className="relative">
+              <div className="relative shrink-0 mt-1">
                 <input 
                   type="text" 
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSend()}
-                  placeholder="Answer or ask question..."
+                  placeholder="Type your message..."
                   className="w-full bg-hexagon-surface border border-hexagon-border py-2.5 pl-3.5 pr-10 rounded-xl text-xs outline-none focus:border-hexagon-accent transition-colors"
                 />
                 <button 
                   onClick={handleSend}
-                  className="absolute right-1.5 top-1.5 p-1.5 bg-hexagon-accent text-black rounded-lg hover:bg-hexagon-accent/90 transition-colors"
-                  title="Send response"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-hexagon-accent hover:bg-hexagon-accent/10 transition-colors"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-4 h-4" />
                 </button>
               </div>
             </div>

@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mic, Send, UserCircle2, CheckCircle2, Volume2, VolumeX, 
   RotateCcw, Sparkles, Brain, Lightbulb, Compass, HelpCircle, 
-  ArrowRight, Globe, Lock, Unlock, Eye, Maximize2, User
+  ArrowRight, Globe, Lock, Unlock, Eye, Maximize2, User,
+  MessageSquare, X
 } from 'lucide-react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
@@ -123,6 +124,7 @@ export default function TutorPage() {
   const [messages, setMessages] = useState<{ role: 'user' | 'teacher', text: string }[]>([]);
   const [input, setInput] = useState('');
   const [showSelector, setShowSelector] = useState(false);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [cameraMode, setCameraMode] = useState<CameraViewMode>('classroom');
   const [resetTrigger, setResetTrigger] = useState(0);
@@ -613,57 +615,86 @@ export default function TutorPage() {
               </div>
             </div>
 
+            {/* Interactive Response Terminal Toggle Button */}
+            {!isTerminalOpen && (
+              <button 
+                onClick={() => setIsTerminalOpen(true)}
+                className="absolute bottom-2 right-2 z-30 p-3.5 rounded-full bg-hexagon-accent text-[#080a0d] shadow-lg shadow-hexagon-accent/20 hover:scale-105 active:scale-95 transition-transform"
+                title="Open Student Terminal"
+              >
+                <MessageSquare className="w-5 h-5" />
+              </button>
+            )}
+
             {/* Interactive Response Terminal (Floating Widget) */}
-            <div className="w-[320px] absolute bottom-0 right-0 h-[400px] z-30 bg-[#0e1217]/85 backdrop-blur-xl border border-hexagon-border rounded-3xl p-5 flex flex-col justify-between shadow-2xl">
-              <div className="flex items-center gap-2 border-b border-hexagon-border/60 pb-3 mb-2 shrink-0">
-                <div className="p-1.5 rounded-lg bg-gray-800 text-gray-400">
-                  <User className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Student Terminal
-                </span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto mb-3 space-y-3 scrollbar-hide flex flex-col justify-end">
-                {messages.length === 0 ? (
-                  <div className="text-xs text-gray-500 text-center py-4 flex flex-col items-center gap-1">
-                    <Compass className="w-4 h-4 text-gray-600" />
-                    <span>Answer or ask anything</span>
-                  </div>
-                ) : (
-                  messages.slice(-12).map((m, i) => (
-                    <div 
-                      key={i} 
-                      className={`p-3 rounded-2xl text-[13px] max-w-[92%] leading-relaxed ${
-                        m.role === 'user' 
-                          ? 'bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-text-primary ml-auto rounded-tr-sm' 
-                          : 'bg-hexagon-surface border border-hexagon-border text-gray-300 mr-auto rounded-tl-sm'
-                      }`}
-                    >
-                      {m.text}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Input field */}
-              <div className="relative shrink-0 mt-1">
-                <input 
-                  type="text" 
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSend()}
-                  placeholder="Type your message..."
-                  className="w-full bg-hexagon-surface/80 border border-hexagon-border py-3 pl-4 pr-10 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors shadow-inner"
-                />
-                <button 
-                  onClick={handleSend}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-hexagon-accent hover:bg-hexagon-accent/10 transition-colors"
+            <AnimatePresence>
+              {isTerminalOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-[320px] absolute bottom-0 right-0 h-[400px] z-30 bg-[#0e1217]/85 backdrop-blur-xl border border-hexagon-border rounded-3xl p-5 flex flex-col justify-between shadow-2xl"
                 >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+                  <div className="flex items-center justify-between border-b border-hexagon-border/60 pb-3 mb-2 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-gray-800 text-gray-400">
+                        <User className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Student Terminal
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => setIsTerminalOpen(false)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto mb-3 space-y-3 scrollbar-hide flex flex-col justify-end">
+                    {messages.length === 0 ? (
+                      <div className="text-xs text-gray-500 text-center py-4 flex flex-col items-center gap-1">
+                        <Compass className="w-4 h-4 text-gray-600" />
+                        <span>Answer or ask anything</span>
+                      </div>
+                    ) : (
+                      messages.slice(-12).map((m, i) => (
+                        <div 
+                          key={i} 
+                          className={`p-3 rounded-2xl text-[13px] max-w-[92%] leading-relaxed ${
+                            m.role === 'user' 
+                              ? 'bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-text-primary ml-auto rounded-tr-sm' 
+                              : 'bg-hexagon-surface border border-hexagon-border text-gray-300 mr-auto rounded-tl-sm'
+                          }`}
+                        >
+                          {m.text}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Input field */}
+                  <div className="relative shrink-0 mt-1">
+                    <input 
+                      type="text" 
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleSend()}
+                      placeholder="Type your message..."
+                      className="w-full bg-hexagon-surface/80 border border-hexagon-border py-3 pl-4 pr-10 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors shadow-inner"
+                    />
+                    <button 
+                      onClick={handleSend}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-hexagon-accent hover:bg-hexagon-accent/10 transition-colors"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
           </div>
         </div>

@@ -4,30 +4,44 @@ import { useGLTF, useAnimations } from '@react-three/drei'
 export function TeacherAvatar({ currentAction = "idle", speaking = false, ...props }) {
   const group = useRef()
   
-  // This will load the REAL 3D model you export from Avaturn.
-  const { nodes, materials, scene } = useGLTF('/models/teacher_avatar.glb')
+  // This loads the REAL 3D model you exported.
+  const { scene, animations } = useGLTF('/models/teacher_avatar.glb')
   
-  // (Optional) Load animations if you have them, otherwise just render the model
-  let actions = null;
+  // Use intrinsic animations from the model itself
+  const { actions } = useAnimations(animations, group)
+
+  // Try to load external animations if the model doesn't have any built-in
+  let externalActions = null;
   try {
     const animData = useGLTF('/models/teacher_animations.glb');
     const anim = useAnimations(animData.animations, group);
-    actions = anim.actions;
+    externalActions = anim.actions;
   } catch (e) {
-    console.warn("No animations file found, rendering static model.");
+    // Ignore if not present
   }
 
-  useEffect(() => {
-    if (actions && actions[currentAction]) {
-      actions[currentAction].reset().fadeIn(0.5).play()
-      return () => {
-        actions[currentAction].fadeOut(0.5)
-      }
-    }
-  }, [currentAction, actions])
+  // Combine actions (prefer built-in over external)
+  const finalActions = { ...externalActions, ...actions };
 
   useEffect(() => {
-    // Audio-reactive lip sync for the REAL Avaturn model
+    // Attempt to play 'currentAction'. If not found, try to play the first animation available.
+    let actionToPlay = finalActions[currentAction];
+    
+    if (!actionToPlay && Object.keys(finalActions).length > 0) {
+      // Fallback: play the first animation found in the file
+      actionToPlay = finalActions[Object.keys(finalActions)[0]];
+    }
+
+    if (actionToPlay) {
+      actionToPlay.reset().fadeIn(0.5).play();
+      return () => {
+        actionToPlay.fadeOut(0.5);
+      }
+    }
+  }, [currentAction, finalActions])
+
+  useEffect(() => {
+    // Audio-reactive lip sync for the ARKit blendshapes
     let interval;
     if (speaking) {
       interval = setInterval(() => {

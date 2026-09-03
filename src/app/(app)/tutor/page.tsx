@@ -163,7 +163,11 @@ export default function TutorPage() {
     }
 
     try {
-      const apiKey = "243f7bfba628b6e6e211fe00a41163de1e881d0713d05e09732b029c25560fae";
+      const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+      if (!apiKey) {
+        throw new Error("Missing NEXT_PUBLIC_ELEVENLABS_API_KEY in .env");
+      }
+      
       // Adam for Male (Alex), Rachel for Female (Aria)
       const voiceId = isMale ? "pNInz6obbfDQGcgMyIGb" : "21m00Tcm4TlvDq8ikWAM"; 
       

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
-import { ChevronRight, ArrowLeft, Loader2, Sparkles, BookOpen, Brain, Clock, Volume2 } from "lucide-react";
+import { ChevronRight, ArrowLeft, Sparkles, BookOpen, Brain, Clock, Volume2 } from "lucide-react";
 
 const STEPS = [
   { id: "goal", title: "What do you want to learn?", icon: BookOpen },
@@ -118,7 +118,7 @@ export default function SetupPage() {
                     { id: "intermediate", label: "Intermediate", desc: "I know the basics. Teach me the details." },
                     { id: "advanced", label: "Advanced", desc: "I want deep technical implementation." }
                   ].map(l => (
-                    <button key={l.id} onClick={() => setLevel(l.id as any)} className={`p-6 rounded-2xl border-2 text-left transition-all ${level === l.id ? 'bg-hexagon-accent/5 border-hexagon-accent' : 'bg-hexagon-surface border-hexagon-border hover:border-hexagon-accent/50'}`}>
+                    <button key={l.id} onClick={() => setLevel(l.id as 'beginner' | 'intermediate' | 'advanced')} className={`p-6 rounded-2xl border-2 text-left transition-all ${level === l.id ? 'bg-hexagon-accent/5 border-hexagon-accent' : 'bg-hexagon-surface border-hexagon-border hover:border-hexagon-accent/50'}`}>
                       <h3 className={`font-semibold text-lg mb-2 ${level === l.id ? 'text-hexagon-accent' : 'text-hexagon-text-primary'}`}>{l.label}</h3>
                       <p className="text-sm text-hexagon-text-secondary">{l.desc}</p>
                     </button>
@@ -132,7 +132,7 @@ export default function SetupPage() {
                     { id: "female", name: "ARIA", desc: "Patient, warm, and highly visual. Uses analogies and guides you gently.", color: "from-purple-500/20" },
                     { id: "male", name: "ALEX", desc: "Direct, rigorous, and technical. Challenges you with tough questions.", color: "from-blue-500/20" }
                   ].map(t => (
-                    <button key={t.id} onClick={() => setTutorGender(t.id as any)} className={`relative overflow-hidden p-6 rounded-2xl border-2 text-left transition-all bg-hexagon-surface ${tutorGender === t.id ? 'border-hexagon-accent' : 'border-hexagon-border hover:border-hexagon-accent/50'}`}>
+                    <button key={t.id} onClick={() => setTutorGender(t.id as 'male' | 'female')} className={`relative overflow-hidden p-6 rounded-2xl border-2 text-left transition-all bg-hexagon-surface ${tutorGender === t.id ? 'border-hexagon-accent' : 'border-hexagon-border hover:border-hexagon-accent/50'}`}>
                       <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${t.color} to-transparent opacity-50 rounded-bl-full`} />
                       <div className="relative z-10">
                         <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-2xl mb-4">

@@ -1,27 +1,40 @@
 "use client";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, MessageSquare, BookOpen, Library, TrendingUp, Layers, Calendar, Settings, Brain } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { 
+  Home, MessageSquare, BookOpen, Library, TrendingUp, 
+  Layers, Calendar, Settings, Brain, RotateCcw, Target 
+} from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
-const MAIN_LINKS = [
+interface NavLinkItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: string;
+}
+
+const MAIN_LINKS: NavLinkItem[] = [
   { name: 'Home', href: '/home', icon: Home },
-  { name: 'AI Tutor', href: '/tutor', icon: MessageSquare },
+  { name: 'AI Tutor', href: '/tutor', icon: MessageSquare, badge: '3D' },
   { name: 'My Learning', href: '/learning', icon: BookOpen },
   { name: 'Library', href: '/library', icon: Library },
 ];
 
-const STUDY_LINKS = [
+const STUDY_LINKS: NavLinkItem[] = [
   { name: 'Progress', href: '/progress', icon: TrendingUp },
   { name: 'Flashcards', href: '/flashcards', icon: Layers },
   { name: 'Planner', href: '/planner', icon: Calendar },
+  { name: 'Revision', href: '/revision', icon: RotateCcw, badge: 'Adaptive' },
+  { name: 'Exam Mode', href: '/exam', icon: Target },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { profile } = useAuthStore();
 
-  const renderLinks = (links: any[]) => (
+  const renderLinks = (links: NavLinkItem[]) => (
     <div className="space-y-1">
       {links.map((link) => {
         const active = pathname.startsWith(link.href);
@@ -30,14 +43,23 @@ export default function Sidebar() {
           <Link
             key={link.name}
             href={link.href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
               active 
-                ? 'bg-hexagon-surface-hover text-hexagon-accent' 
-                : 'text-hexagon-text-secondary hover:text-hexagon-text-primary hover:bg-hexagon-surface-hover'
+                ? 'bg-hexagon-accent/15 text-hexagon-accent font-semibold border border-hexagon-accent/25' 
+                : 'text-hexagon-text-secondary hover:text-white hover:bg-white/5 border border-transparent'
             }`}
           >
-            <Icon className={`w-4 h-4 ${active ? 'text-hexagon-accent' : ''}`} />
-            {link.name}
+            <div className="flex items-center gap-3">
+              <Icon className={`w-4 h-4 ${active ? 'text-hexagon-accent' : ''}`} />
+              <span>{link.name}</span>
+            </div>
+            {link.badge && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${
+                active ? 'bg-hexagon-accent text-black font-bold' : 'bg-white/10 text-gray-400'
+              }`}>
+                {link.badge}
+              </span>
+            )}
           </Link>
         );
       })}

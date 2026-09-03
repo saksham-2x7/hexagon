@@ -1,32 +1,32 @@
 "use client";
-import { Settings, Globe, ChevronLeft, ChevronRight, Target, X, Check, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Target } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
-import Link from 'next/link';
 import { useShallow } from 'zustand/react/shallow';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MasteryDrawer from './MasteryDrawer';
 import { useRouter } from 'next/navigation';
 
+interface StepWindow {
+  nextLessonStep?: () => void;
+  prevLessonStep?: () => void;
+}
+
 export default function LessonHUD() {
   const router = useRouter();
   const [isMasteryOpen, setIsMasteryOpen] = useState(false);
   const [showEndDialog, setShowEndDialog] = useState(false);
   
-  const { lessonPhase } = useAIIntentStore(
-    useShallow(state => ({
-      lessonPhase: state.lessonPhase
-    }))
-  );
+  const lessonPhase = useAIIntentStore(state => state.lessonPhase);
 
   // Derive mock mastery from phase progression
   const phaseMap = { 'Explain': 20, 'Hypothesize': 40, 'Construct': 60, 'Observe': 80, 'Resolve': 90, 'Evaluate': 100, 'Question': 50 };
   const mastery = phaseMap[lessonPhase as keyof typeof phaseMap] || 50;
 
-  const handleNext = () => (window as any).nextLessonStep?.();
-  const handlePrev = () => (window as any).prevLessonStep?.();
+  const handleNext = () => (window as unknown as StepWindow).nextLessonStep?.();
+  const handlePrev = () => (window as unknown as StepWindow).prevLessonStep?.();
   const handleEnd = () => {
     setShowEndDialog(false);
     router.push('/progress');

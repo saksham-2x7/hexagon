@@ -3,8 +3,12 @@
 import { useTheme } from "next-themes";
 import { Moon, Sun, Monitor, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { logout } = useAuthStore();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -86,7 +90,13 @@ export default function SettingsPage() {
         </section>
         
         <section className="pt-8">
-           <button className="flex items-center gap-2 text-red-500 hover:text-red-400 font-medium transition-colors px-4 py-2 rounded-lg hover:bg-red-500/10">
+           <button 
+             onClick={() => {
+               logout();
+               router.push('/login');
+             }}
+             className="flex items-center gap-2 text-red-500 hover:text-red-400 font-medium transition-colors px-4 py-2 rounded-lg hover:bg-red-500/10"
+           >
              <LogOut className="w-5 h-5" /> Sign Out
            </button>
         </section>

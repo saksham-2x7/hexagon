@@ -2,20 +2,17 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
+import { Environment, OrbitControls } from '@react-three/drei';
 import ProceduralAvatar from './ProceduralAvatar';
 import { useEffect, useState, useRef } from 'react';
-import { Mic, MicOff, Maximize2, Minimize2, MessageSquare, Eye } from 'lucide-react';
+import { Mic, MicOff, Maximize2, Minimize2, MessageSquare } from 'lucide-react';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
-// Removing TeacherState import since we don't strictly need the enum here if we just use strings or we can keep it if used.
-import { TeacherState } from '../../types/teacher';
 
 export default function AITeacherPiP() {
   const [heights, setHeights] = useState([20, 40, 60, 40, 20]);
   const [isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showCaptions, setShowCaptions] = useState(true);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -32,25 +29,6 @@ export default function AITeacherPiP() {
     }, 150);
     return () => clearInterval(interval);
   }, [isMuted, teacherState]);
-
-  // Gaze Targeting (Track Mouse)
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      
-      // Calculate normalized direction (-1 to 1)
-      const x = (e.clientX - centerX) / window.innerWidth;
-      const y = (e.clientY - centerY) / window.innerHeight;
-      
-      setMousePos({ x, y });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   const getPresenceStyles = () => {
     switch (teacherState) {
@@ -153,11 +131,13 @@ export default function AITeacherPiP() {
 
         <div className="flex-1 relative flex items-center justify-center bg-black/20 overflow-hidden">
           <div className="absolute inset-0 w-full h-full">
-            <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
-              <ambientLight intensity={0.5} />
-              <pointLight position={[10, 10, 10]} intensity={1} />
+            <Canvas camera={{ position: [0, 1.55, 1.15], fov: 38 }}>
+              <ambientLight intensity={0.9} />
+              <directionalLight position={[2, 3, 2]} intensity={1.5} />
+              <directionalLight position={[-2, 1, -1]} intensity={0.8} color="#00FF9D" />
               <Environment preset="city" />
               <ProceduralAvatar />
+              <OrbitControls enableZoom={false} enablePan={false} target={[0, 1.50, 0]} />
             </Canvas>
           </div>
           <div className="absolute inset-0 pointer-events-none rounded-t-3xl shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]" />

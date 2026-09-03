@@ -115,22 +115,45 @@ export function NeuralNetworkBoard({ demoState, weightValue, onWeightChange }: N
         
         {/* HTML Overlay for the Slider */}
         {showWeights && (
-           <motion.div 
-             initial={{ opacity: 0, y: 10 }}
-             animate={{ opacity: 1, y: 0 }}
-             className="absolute top-[30%] left-[55%] bg-[#111] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-hexagon-accent p-4 rounded-2xl shadow-2xl z-20 w-64"
-           >
-              <div className="text-sm font-bold text-hexagon-accent mb-3">ADJUST WEIGHT (w₁)</div>
-              <input 
-                type="range" 
-                min="0" max="2" step="0.1" 
-                value={weightValue} 
-                onChange={(e) => onWeightChange(parseFloat(e.target.value))}
-                className="w-full accent-hexagon-accent cursor-pointer"
-              />
-              <div className="text-right text-sm font-mono mt-2 text-white">w₁ = {weightValue.toFixed(2)}</div>
-           </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute top-[28%] left-[53%] bg-[#111] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-hexagon-accent p-4 rounded-2xl shadow-2xl z-20 w-72"
+          >
+            <div className="flex items-center justify-between text-xs font-bold text-hexagon-accent mb-2">
+              <span>WEIGHT (w₁)</span>
+              <span className="font-mono text-white text-sm">{weightValue.toFixed(2)}</span>
+            </div>
+            <input 
+              type="range" 
+              min="0" max="2" step="0.05" 
+              value={weightValue} 
+              onChange={(e) => onWeightChange(parseFloat(e.target.value))}
+              className="w-full accent-hexagon-accent cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-mono">
+              <span>0.0 (inhibited)</span>
+              <span>1.0 (calibrated)</span>
+              <span>2.0 (boosted)</span>
+            </div>
+          </motion.div>
         )}
+      </div>
+
+      {/* Activation Function & Math Telemetry Bar */}
+      <div className="mt-2 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 font-medium">Activation Function:</span>
+          <div className="flex items-center bg-white/5 rounded-lg p-0.5 border border-white/10 font-mono text-[11px]">
+            <span className="px-2 py-0.5 rounded bg-hexagon-accent text-black font-bold">ReLU</span>
+            <span className="px-2 py-0.5 text-gray-400">Sigmoid</span>
+            <span className="px-2 py-0.5 text-gray-400">GELU</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 font-mono text-[11px]">
+          <span className="text-gray-400">∑(w·x): <strong className="text-white">{(weightValue * 0.85 + 0.42).toFixed(2)}</strong></span>
+          <span className="text-gray-400">Loss: <strong className="text-emerald-400">0.024</strong></span>
+        </div>
       </div>
     </div>
   );

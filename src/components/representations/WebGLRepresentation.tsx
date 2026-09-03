@@ -4,6 +4,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, Line, Sphere, Text, Billboard } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
+import type { Line2 } from 'three-stdlib';
 import { useInteractionStore } from '../../store/useInteractionStore';
 import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
 import { useMemo, useRef, useState } from 'react';
@@ -13,14 +14,14 @@ const LAYERS = [
   { id: 'input', nodes: 3, x: -3, color: '#4A90E2', label: 'Inputs' },
   { id: 'hidden1', nodes: 4, x: -1, color: '#9013FE', label: 'Hidden 1' },
   { id: 'hidden2', nodes: 4, x: 1, color: '#9013FE', label: 'Hidden 2' },
-  { id: 'output', nodes: 2, x: 3, color: '#00FF9D', label: 'Outputs' },
+  { id: 'output', nodes: 2, x: 3, color: '#00FF9D', label: 'Output' }
 ];
 
 function NeuralNode({ position, color, id, onInteract }: { position: [number, number, number], color: string, id: string, onInteract: (id: string) => void }) {
   const [hovered, setHovered] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
   
-  useFrame((state) => {
+  useFrame(() => {
     if (meshRef.current) {
       meshRef.current.scale.setScalar(
         THREE.MathUtils.lerp(meshRef.current.scale.x, hovered ? 1.5 : 1, 0.1)
@@ -33,15 +34,18 @@ function NeuralNode({ position, color, id, onInteract }: { position: [number, nu
       ref={meshRef}
       args={[0.2, 32, 32]} 
       position={position}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+      onPointerOut={() => setHovered(false)}
       onClick={(e) => { e.stopPropagation(); onInteract(id); }}
-      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
-      onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
     >
       <meshPhysicalMaterial 
-        color={color} 
+        color={color}
         emissive={color}
-        emissiveIntensity={hovered ? 2 : 0.5}
+        emissiveIntensity={hovered ? 0.8 : 0.2}
         roughness={0.2}
+        metalness={0.8}
+        clearcoat={1}
+        clearcoatRoughness={0.1}
         transmission={0.5}
         thickness={1}
       />
@@ -50,12 +54,12 @@ function NeuralNode({ position, color, id, onInteract }: { position: [number, nu
 }
 
 function ConnectionLine({ start, end, active }: { start: [number, number, number], end: [number, number, number], active: boolean }) {
-  const lineRef = useRef<any>(null);
+  const lineRef = useRef<Line2>(null);
   
-  useFrame(({ clock }) => {
+  useFrame(() => {
     if (lineRef.current && active) {
-      const material = lineRef.current.material;
-      if (material) {
+      const material = lineRef.current.material as unknown as { dashOffset?: number };
+      if (material && material.dashOffset !== undefined) {
         material.dashOffset -= 0.02;
       }
     }
@@ -85,8 +89,23 @@ function NeuralNetwork() {
     dispatchAction({ type: 'concept_selected', conceptId: id });
   };
 
+  interface NodeItem {
+    id: string;
+    layerId: string;
+    x: number;
+    y: number;
+    z: number;
+    color: string;
+  }
+
+  interface ConnectionItem {
+    id: string;
+    source: NodeItem;
+    target: NodeItem;
+  }
+
   const nodes = useMemo(() => {
-    const arr: any[] = [];
+    const arr: NodeItem[] = [];
     LAYERS.forEach((layer) => {
       const yOffset = (layer.nodes - 1) * 0.8 / 2;
       for (let i = 0; i < layer.nodes; i++) {
@@ -104,7 +123,7 @@ function NeuralNetwork() {
   }, []);
 
   const connections = useMemo(() => {
-    const arr: any[] = [];
+    const arr: ConnectionItem[] = [];
     for (let l = 0; l < LAYERS.length - 1; l++) {
       const currLayerNodes = nodes.filter(n => n.layerId === LAYERS[l].id);
       const nextLayerNodes = nodes.filter(n => n.layerId === LAYERS[l+1].id);

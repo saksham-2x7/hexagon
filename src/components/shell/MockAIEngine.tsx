@@ -1,10 +1,27 @@
 "use client";
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
 import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
 import { useRouter } from 'next/navigation';
+import type { LessonPhase, RepresentationId } from '../../types/orchestration';
+import type { TeacherState } from '../../types/teacher';
+import type { QuestionProps } from '../../features/assessment/QuestionPanel';
 
-export const LESSON_SEQUENCE = [
+interface LessonSequenceItem {
+  phase: LessonPhase;
+  representation: RepresentationId;
+  teacherState: TeacherState;
+  teacherMessage: string;
+  question: QuestionProps | null;
+}
+
+interface LessonWindow extends Window {
+  _lessonState?: { index: number };
+  nextLessonStep?: () => void;
+  prevLessonStep?: () => void;
+}
+
+export const LESSON_SEQUENCE: LessonSequenceItem[] = [
   {
     phase: 'Explain',
     representation: 'webgl',
@@ -26,7 +43,7 @@ export const LESSON_SEQUENCE = [
     teacherMessage: 'Before we build it, think about this: If our current prediction is too low, how should the weight connecting an active input change?',
     question: {
       id: 'q1',
-      type: 'multiple_choice',
+      type: 'multiple_choice' as const,
       prompt: 'If the prediction is too low (and input is positive), how should we adjust the weight?',
       options: ['Decrease the weight', 'Increase the weight', 'Keep it the same'],
       correctOption: 1,
@@ -59,30 +76,31 @@ export default function MockAIEngine() {
   
   // Expose control API globally for LessonHUD to use
   useEffect(() => {
-    (window as any)._lessonState = { index: 0 };
+    const win = window as unknown as LessonWindow;
+    win._lessonState = { index: 0 };
     
     const applyState = (idx: number) => {
       const state = LESSON_SEQUENCE[idx];
       if (!state) return;
-      setLessonPhase(state.phase as any);
-      setRepresentation(state.representation as any);
-      setTeacherState(state.teacherState as any, state.teacherMessage);
-      setActiveQuestion(state.question as any);
+      setLessonPhase(state.phase);
+      setRepresentation(state.representation);
+      setTeacherState(state.teacherState, state.teacherMessage);
+      setActiveQuestion(state.question);
     };
 
-    (window as any).nextLessonStep = () => {
-      if ((window as any)._lessonState.index < LESSON_SEQUENCE.length - 1) {
-        (window as any)._lessonState.index++;
-        applyState((window as any)._lessonState.index);
+    win.nextLessonStep = () => {
+      if (win._lessonState && win._lessonState.index < LESSON_SEQUENCE.length - 1) {
+        win._lessonState.index++;
+        applyState(win._lessonState.index);
       } else {
         router.push('/lesson/summary');
       }
     };
 
-    (window as any).prevLessonStep = () => {
-      if ((window as any)._lessonState.index > 0) {
-        (window as any)._lessonState.index--;
-        applyState((window as any)._lessonState.index);
+    win.prevLessonStep = () => {
+      if (win._lessonState && win._lessonState.index > 0) {
+        win._lessonState.index--;
+        applyState(win._lessonState.index);
       }
     };
 
@@ -90,14 +108,14 @@ export default function MockAIEngine() {
     applyState(0);
     
     // Auto advance first few steps to mimic AI talking
-    const t1 = setTimeout(() => (window as any).nextLessonStep(), 6000);
-    const t2 = setTimeout(() => (window as any).nextLessonStep(), 14000);
+    const t1 = setTimeout(() => win.nextLessonStep?.(), 6000);
+    const t2 = setTimeout(() => win.nextLessonStep?.(), 14000);
     
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      delete (window as any).nextLessonStep;
-      delete (window as any).prevLessonStep;
+      delete win.nextLessonStep;
+      delete win.prevLessonStep;
     };
   }, [setRepresentation, setLessonPhase, setTeacherState, setActiveQuestion, router]);
 
@@ -110,7 +128,7 @@ export default function MockAIEngine() {
       if (lastEvent.answer === '1') {
         setTeacherState('celebrating', 'Correct! By increasing the weight, we boost the output prediction to reduce the error.');
         setTimeout(() => {
-          (window as any).nextLessonStep();
+          (window as unknown as LessonWindow).nextLessonStep?.();
         }, 4000);
       } else {
         setTeacherState('correcting', 'Not quite. If we decrease it, the prediction goes even lower. Let\'s look at a timeline of previous adjustments.');
@@ -125,7 +143,7 @@ export default function MockAIEngine() {
             setTeacherState('waiting', 'Now that you see the history, try the question again.');
             setActiveQuestion({
               id: 'q1_retry',
-              type: 'multiple_choice',
+              type: 'multiple_choice' as const,
               prompt: 'To raise the prediction, we should...',
               options: ['Decrease the weight', 'Increase the weight'],
               correctOption: 1,

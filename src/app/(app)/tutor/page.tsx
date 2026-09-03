@@ -133,7 +133,8 @@ export default function TutorPage() {
 
     try {
       // Adam for Male (Alex), Rachel for Female (Aria) -> Is mapped in backend
-      const response = await fetch(`http://localhost:8000/api/v1/tts`, {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/v1/tts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

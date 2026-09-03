@@ -1,69 +1,78 @@
-import React, { useEffect, useRef } from 'react'
-import { useGLTF, useAnimations } from '@react-three/drei'
+import React, { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 
 /**
- * TeacherAvatar Component
+ * Placeholder Teacher Avatar
  * 
- * Instructions for the Hackathon Team:
- * 1. Export your Avatar from Avaturn.me (as shown in your screenshot) in .glb format.
- * 2. Place the file at `frontend/public/models/teacher_avatar.glb`.
- * 3. Download a teaching/talking animation from Mixamo (e.g., "Talking" or "Explaining"), 
- *    convert it to .glb, and place it at `frontend/public/models/teacher_animations.glb`.
+ * Once you download your Avaturn model to `public/models/teacher_avatar.glb`,
+ * you can replace this component with the real useGLTF loader.
  */
 export function TeacherAvatar({ currentAction = "idle", speaking = false, ...props }) {
   const group = useRef()
-  
-  // Load the Avaturn model (contains the mesh, bones, and ARKit blendshapes like jawOpen)
-  const { nodes, materials, scene } = useGLTF('/models/teacher_avatar.glb')
-  
-  // Load animations (Idle, Talking, Explaining, etc.)
-  const { animations } = useGLTF('/models/teacher_animations.glb')
-  const { actions } = useAnimations(animations, group)
+  const jawRef = useRef()
+  const headRef = useRef()
 
-  useEffect(() => {
-    // Crossfade between animations based on the currentAction prop
-    // e.g., 'idle', 'explaining', 'listening'
-    if (actions && actions[currentAction]) {
-      actions[currentAction].reset().fadeIn(0.5).play()
-      return () => {
-        actions[currentAction].fadeOut(0.5)
+  useFrame((state, delta) => {
+    // 1. Idle Breathing Animation (bobbing up and down slightly)
+    if (group.current) {
+      group.current.position.y = -1 + Math.sin(state.clock.elapsedTime * 2) * 0.05
+    }
+    
+    // 2. Audio-reactive Lip Sync (moving the jaw block up and down)
+    if (jawRef.current) {
+      if (speaking) {
+        jawRef.current.position.y = -0.4 - (Math.random() * 0.15)
+        // Slight head tilt when talking
+        headRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 4) * 0.05
+      } else {
+        jawRef.current.position.y = -0.3
+        headRef.current.rotation.z = 0
       }
     }
-  }, [currentAction, actions])
-
-  useEffect(() => {
-    // Simple audio-reactive placeholder using the jawOpen blendshape
-    // Avaturn models natively support ARKit blendshapes (jawOpen, mouthSmile, etc.)
-    let interval;
-    if (speaking) {
-      interval = setInterval(() => {
-        scene.traverse((child) => {
-          if (child.isMesh && child.morphTargetDictionary && child.morphTargetDictionary['jawOpen'] !== undefined) {
-            const index = child.morphTargetDictionary['jawOpen'];
-            // Randomize mouth opening to simulate talking
-            child.morphTargetInfluences[index] = Math.random() * 0.8; 
-          }
-        });
-      }, 100); // update every 100ms
-    } else {
-      // Close mouth when not speaking
-      scene.traverse((child) => {
-        if (child.isMesh && child.morphTargetDictionary && child.morphTargetDictionary['jawOpen'] !== undefined) {
-          const index = child.morphTargetDictionary['jawOpen'];
-          child.morphTargetInfluences[index] = 0;
-        }
-      });
-    }
-
-    return () => clearInterval(interval);
-  }, [speaking, scene]);
+  })
 
   return (
-    <group ref={group} {...props} dispose={null}>
-      <primitive object={scene} />
+    <group ref={group} {...props}>
+      {/* Body */}
+      <mesh position={[0, 1.2, 0]}>
+        <boxGeometry args={[0.8, 1.2, 0.4]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
+      
+      {/* Head Group */}
+      <group ref={headRef} position={[0, 2.2, 0]}>
+        {/* Head */}
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[0.6, 0.6, 0.6]} />
+          <meshStandardMaterial color="#f39c12" />
+        </mesh>
+        
+        {/* Eyes */}
+        <mesh position={[-0.15, 0.1, 0.31]}>
+          <boxGeometry args={[0.1, 0.05, 0.05]} />
+          <meshStandardMaterial color="#333" />
+        </mesh>
+        <mesh position={[0.15, 0.1, 0.31]}>
+          <boxGeometry args={[0.1, 0.05, 0.05]} />
+          <meshStandardMaterial color="#333" />
+        </mesh>
+
+        {/* Jaw (Mouth mechanism) */}
+        <mesh ref={jawRef} position={[0, -0.3, 0.25]}>
+          <boxGeometry args={[0.4, 0.1, 0.3]} />
+          <meshStandardMaterial color="#e67e22" />
+        </mesh>
+      </group>
+      
+      {/* Arms */}
+      <mesh position={[-0.6, 1.2, 0]}>
+        <boxGeometry args={[0.2, 1, 0.2]} />
+        <meshStandardMaterial color="#34495e" />
+      </mesh>
+      <mesh position={[0.6, 1.2, 0]}>
+        <boxGeometry args={[0.2, 1, 0.2]} />
+        <meshStandardMaterial color="#34495e" />
+      </mesh>
     </group>
   )
 }
-
-useGLTF.preload('/models/teacher_avatar.glb')
-useGLTF.preload('/models/teacher_animations.glb')

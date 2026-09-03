@@ -172,9 +172,6 @@ class LiveSSEManager {
       // 3. Audio Routing & Lip-Sync Ingestion
       if (turn.audio_url || turn.audio_base64) {
         this.playBackendAudio(turn.audio_url || turn.audio_base64!, callbacks);
-      } else if (turn.message) {
-        // Automatically speak message and drive accurate phoneme visemes
-        speechSynthesizer.speak(turn.message);
       }
     }
   }

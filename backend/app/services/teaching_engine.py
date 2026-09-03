@@ -37,21 +37,12 @@ from contracts.pedagogy.models import (
 from core.pedagogy.engine.router import AdaptiveRouter
 from core.pedagogy.engine.assembler import TeachingTurnAssembler
 
-try:
-    client = genai.Client()
-except Exception:
-    client = None
+from app.core.llm_client import generate_structured_output_async
 
 async def mock_generate_teaching_turn(session_id: str, student_input: Optional[str] = None) -> AsyncGenerator[str, None]:
     """
     The production integration of the AI Brain with the FastAPI SQLite datastore.
     """
-    global client
-    if client is None:
-        try:
-            client = genai.Client()
-        except Exception:
-            pass
 
     # 1. Fetch Session from DB
     session = await session_repo.get_session(session_id)
@@ -81,22 +72,17 @@ async def mock_generate_teaching_turn(session_id: str, student_input: Optional[s
     adaptive_transition = None
 
     # 2. Evaluate & Route if Student Input exists
-    if student_input and client:
+    if student_input:
         session.current_state = PedagogicalState.EVALUATING
         
         eval_prompt = f"Topic: {topic}\nStudent Response: {student_input}"
         try:
-            eval_response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=eval_prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=PedagogicalEvaluation,
-                    system_instruction="You are a pedagogical evaluator assessing a student's answer.",
-                    temperature=0.2
-                )
+            evaluation = await generate_structured_output_async(
+                system_instruction="You are a pedagogical evaluator assessing a student's answer.",
+                user_prompt=eval_prompt,
+                schema=PedagogicalEvaluation,
+                model='gemini-2.5-flash'
             )
-            evaluation = eval_response.parsed
         except Exception:
             evaluation = None
 
@@ -121,21 +107,15 @@ async def mock_generate_teaching_turn(session_id: str, student_input: Optional[s
     )
     
     teaching_turn = None
-    if client:
-        try:
-            turn_response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents="Generate the next teaching turn.",
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=TeachingTurn,
-                    system_instruction=system_instruction,
-                    temperature=0.7
-                )
-            )
-            teaching_turn = turn_response.parsed
-        except Exception:
-            teaching_turn = None
+    try:
+        teaching_turn = await generate_structured_output_async(
+            system_instruction=system_instruction,
+            user_prompt="Generate the next teaching turn.",
+            schema=TeachingTurn,
+            model='gemini-2.5-flash'
+        )
+    except Exception:
+        teaching_turn = None
 
     if not teaching_turn:
         # Fallback teaching turn

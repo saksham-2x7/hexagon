@@ -25,7 +25,7 @@ def get_client() -> Optional[genai.Client]:
     retry=retry_if_exception_type(APIError),
     reraise=True
 )
-def _call_gemini_structured(
+async def _call_gemini_structured(
     client: genai.Client, 
     system_instruction: str, 
     user_prompt: str, 
@@ -39,7 +39,7 @@ def _call_gemini_structured(
         response_schema=schema,
     )
     
-    response = client.models.generate_content(
+    response = await client.aio.models.generate_content(
         model=model,
         contents=user_prompt,
         config=config
@@ -51,14 +51,14 @@ def _call_gemini_structured(
         
     return response.parsed
 
-def generate_structured_output(
+async def generate_structured_output_async(
     system_instruction: str, 
     user_prompt: str, 
     schema: Type[T], 
     model: str = settings.DEFAULT_MODEL
 ) -> T:
     """
-    Calls the Gemini LLM and guarantees the output matches the provided Pydantic schema.
+    Calls the Gemini LLM asynchronously and guarantees the output matches the provided Pydantic schema.
     """
     client = get_client()
     if not client:
@@ -66,7 +66,7 @@ def generate_structured_output(
 
     try:
         logger.info(f"Generating structured output using model: {model}")
-        result = _call_gemini_structured(client, system_instruction, user_prompt, schema, model)
+        result = await _call_gemini_structured(client, system_instruction, user_prompt, schema, model)
         logger.info("Successfully generated and validated structured output.")
         return result
     except APIError as e:

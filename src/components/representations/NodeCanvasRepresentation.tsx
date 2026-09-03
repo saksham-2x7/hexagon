@@ -16,7 +16,7 @@ import ReactFlow, {
   Handle,
   Position
 } from 'reactflow';
-import 'reactflow/dist/style.css';
+
 import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
 import { motion } from 'framer-motion';
 

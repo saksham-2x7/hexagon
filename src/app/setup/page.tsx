@@ -17,6 +17,7 @@ export default function SetupPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -26,6 +27,7 @@ export default function SetupPage() {
     const profile: LearnerProfile = {
       topic,
       depthLevel: depth,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       learningStyle: learningStyle as any,
       hasMaterials,
     };
@@ -141,7 +143,12 @@ export default function SetupPage() {
                         <style.icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-purple-400' : 'opacity-60'}`} />
                         <span className="text-xs font-medium tracking-wide">{style.label}</span>
                         {isSelected && (
-                          <motion.div layoutId="style-active" className="absolute inset-0 rounded-2xl border border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]" transition={spring as any} />
+                          <motion.div 
+                            layoutId="style-active" 
+                            className="absolute inset-0 rounded-2xl border border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]" 
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            transition={spring as any} 
+                          />
                         )}
                       </button>
                     )

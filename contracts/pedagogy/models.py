@@ -14,11 +14,12 @@ class LearningStyle(str, Enum):
     ANALYTICAL = "ANALYTICAL"
 
 class LearnerProfile(BaseModel):
+    student_id: Optional[str] = None
     educational_level: EducationalLevel
     target_subject: str
-    available_time_minutes: int
-    preferred_language: str
-    learning_style: LearningStyle
+    available_time_minutes: int = Field(gt=0)
+    preferred_language: str = "en"
+    learning_style: LearningStyle = LearningStyle.CONCEPTUAL
 
 class Module(BaseModel):
     id: str
@@ -42,7 +43,7 @@ class VisualIntentType(str, Enum):
 
 class VisualIntent(BaseModel):
     type: VisualIntentType
-    payload: Union[str, Dict[str, Any]]
+    payload: str
 
 class PromptType(str, Enum):
     CONCEPT_CHECK = "concept_check"

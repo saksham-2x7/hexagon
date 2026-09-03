@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.chroma_db/
+.eval_chroma_db/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

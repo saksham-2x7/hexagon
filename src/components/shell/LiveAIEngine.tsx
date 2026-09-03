@@ -1,25 +1,21 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
-import { useSemanticDispatcher } from '../../lib/api/useSemanticDispatcher';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useAudioLipSync } from '../../hooks/useAudioLipSync';
 import { liveSSEClient } from '../../services/liveSSEClient';
-import { speechSynthesizer } from '../../services/speechSynthesizer';
-import { LESSON_SEQUENCE } from './MockAIEngine';
 import type { LessonPhase, RepresentationId } from '../../types/orchestration';
 import type { TeacherState } from '../../types/teacher';
 
-interface LessonWindow extends Window {
-  _lessonState?: { index: number };
-  nextLessonStep?: () => void;
-  prevLessonStep?: () => void;
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export default function LiveAIEngine() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('sessionId') || (typeof window !== 'undefined' ? sessionStorage.getItem('hexagon_session_id') : null);
+
+  const profile = useAuthStore(state => state.profile);
+  const tutorGender = profile?.tutorGender || 'female';
 
   const setRepresentation = useAIIntentStore(state => state.setRepresentation);
   const setLessonPhase = useAIIntentStore(state => state.setLessonPhase);
@@ -28,11 +24,9 @@ export default function LiveAIEngine() {
   const setScaffoldLevel = useAIIntentStore(state => state.setScaffoldLevel);
 
   const { connectAudioElement } = useAudioLipSync();
-  const events = useSemanticDispatcher(state => state.events);
   const [isLiveConnected, setIsLiveConnected] = useState(false);
-  const localIndexRef = useRef(0);
 
-  // 1. Live SSE Backend Stream Connection
+  // Live SSE Backend Stream Connection
   useEffect(() => {
     if (!sessionId) return;
 
@@ -47,6 +41,15 @@ export default function LiveAIEngine() {
         }
         if (turn.question !== undefined) {
           setActiveQuestion(turn.question);
+        }
+        
+        // Dynamic TTS trigger
+        if (turn.message && !turn.audio_url && !turn.audio_base64) {
+           const audioUrl = `${BACKEND_URL}/api/v1/tts?text=${encodeURIComponent(turn.message)}&gender=${tutorGender}`;
+           const audioEl = new Audio(audioUrl);
+           audioEl.crossOrigin = 'anonymous';
+           connectAudioElement(audioEl);
+           audioEl.play().catch(e => console.warn("[LiveAIEngine] Audio autoplay deferred:", e));
         }
       },
       onVisualIntent: (intent) => {
@@ -64,99 +67,7 @@ export default function LiveAIEngine() {
     return () => {
       disconnect();
     };
-  }, [sessionId, setLessonPhase, setTeacherState, setActiveQuestion, setRepresentation, setScaffoldLevel, connectAudioElement]);
-
-  // 2. Resilient Sequence Stepper (Supports both live and mock fallback)
-  useEffect(() => {
-    const win = window as unknown as LessonWindow;
-    win._lessonState = { index: localIndexRef.current };
-
-    const applyState = (idx: number) => {
-      const state = LESSON_SEQUENCE[idx];
-      if (!state) return;
-      setLessonPhase(state.phase);
-      setRepresentation(state.representation);
-      setTeacherState(state.teacherState, state.teacherMessage);
-      setActiveQuestion(state.question);
-
-      // Speak current step out loud with natural educator voice & real lip-sync
-      speechSynthesizer.speak(state.teacherMessage);
-    };
-
-    win.nextLessonStep = () => {
-      if (win._lessonState && win._lessonState.index < LESSON_SEQUENCE.length - 1) {
-        win._lessonState.index++;
-        localIndexRef.current = win._lessonState.index;
-        applyState(win._lessonState.index);
-      } else {
-        router.push('/lesson/summary');
-      }
-    };
-
-    win.prevLessonStep = () => {
-      if (win._lessonState && win._lessonState.index > 0) {
-        win._lessonState.index--;
-        localIndexRef.current = win._lessonState.index;
-        applyState(win._lessonState.index);
-      }
-    };
-
-    // If live SSE is not streaming a turn immediately, load step 0
-    if (!isLiveConnected) {
-      applyState(0);
-    }
-
-    return () => {
-      delete win.nextLessonStep;
-      delete win.prevLessonStep;
-      speechSynthesizer.stop();
-    };
-  }, [isLiveConnected, setLessonPhase, setRepresentation, setTeacherState, setActiveQuestion, router]);
-
-  // 3. Reactive Event Handler (Answers & Interactivity)
-  useEffect(() => {
-    if (events.length === 0) return;
-    const lastEvent = events[events.length - 1];
-
-    if (lastEvent.type === 'answer_submitted') {
-      if (lastEvent.answer === '1') {
-        const praise = 'Correct! By increasing the weight, we boost the output prediction to reduce the error.';
-        setTeacherState('celebrating', praise);
-        speechSynthesizer.speak(praise);
-
-        setTimeout(() => {
-          (window as unknown as LessonWindow).nextLessonStep?.();
-        }, 4000);
-      } else {
-        const retryMsg = 'Not quite. If we decrease it, the prediction goes even lower. Let\'s look at a timeline of previous adjustments.';
-        setTeacherState('correcting', retryMsg);
-        speechSynthesizer.speak(retryMsg);
-
-        setTimeout(() => {
-          setRepresentation('timeline');
-          setLessonPhase('Observe');
-          const observeMsg = 'Notice how every time the weight decreased in the past, the error went up?';
-          setTeacherState('speaking', observeMsg);
-          speechSynthesizer.speak(observeMsg);
-
-          setTimeout(() => {
-            setLessonPhase('Question');
-            setRepresentation('diagram');
-            const retryPrompt = 'Now that you see the history, try the question again.';
-            setTeacherState('waiting', retryPrompt);
-            speechSynthesizer.speak(retryPrompt);
-            setActiveQuestion({
-              id: 'q1_retry',
-              type: 'multiple_choice' as const,
-              prompt: 'To raise the prediction, we should...',
-              options: ['Decrease the weight', 'Increase the weight'],
-              correctOption: 1,
-            });
-          }, 7000);
-        }, 5000);
-      }
-    }
-  }, [events, setTeacherState, setRepresentation, setLessonPhase, setActiveQuestion]);
+  }, [sessionId, setLessonPhase, setTeacherState, setActiveQuestion, setRepresentation, setScaffoldLevel, connectAudioElement, tutorGender]);
 
   return null;
 }

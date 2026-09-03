@@ -564,10 +564,10 @@ export default function TutorPage() {
           </div>
 
           {/* Bottom Console: Transcripts & Adaptive Chat */}
-          <div className="h-36 flex gap-4 shrink-0">
+          <div className="h-36 flex gap-4 shrink-0 relative">
             
             {/* Live Synchronized Transcript Box */}
-            <div className="flex-1 bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-md">
+            <div className="flex-1 mr-[336px] bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-md">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className={`p-1.5 rounded-lg ${
@@ -613,8 +613,8 @@ export default function TutorPage() {
               </div>
             </div>
 
-            {/* Interactive Response Terminal */}
-            <div className="w-[320px] bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-5 flex flex-col justify-between shadow-md">
+            {/* Interactive Response Terminal (Floating Widget) */}
+            <div className="w-[320px] absolute bottom-0 right-0 h-[400px] z-30 bg-[#0e1217]/85 backdrop-blur-xl border border-hexagon-border rounded-3xl p-5 flex flex-col justify-between shadow-2xl">
               <div className="flex items-center gap-2 border-b border-hexagon-border/60 pb-3 mb-2 shrink-0">
                 <div className="p-1.5 rounded-lg bg-gray-800 text-gray-400">
                   <User className="w-3.5 h-3.5" />
@@ -624,17 +624,17 @@ export default function TutorPage() {
                 </span>
               </div>
 
-              <div className="flex-1 overflow-y-auto mb-3 space-y-2 scrollbar-hide flex flex-col justify-end">
+              <div className="flex-1 overflow-y-auto mb-3 space-y-3 scrollbar-hide flex flex-col justify-end">
                 {messages.length === 0 ? (
                   <div className="text-xs text-gray-500 text-center py-4 flex flex-col items-center gap-1">
                     <Compass className="w-4 h-4 text-gray-600" />
                     <span>Answer or ask anything</span>
                   </div>
                 ) : (
-                  messages.slice(-3).map((m, i) => (
+                  messages.slice(-12).map((m, i) => (
                     <div 
                       key={i} 
-                      className={`p-2.5 rounded-2xl text-xs max-w-[92%] leading-relaxed ${
+                      className={`p-3 rounded-2xl text-[13px] max-w-[92%] leading-relaxed ${
                         m.role === 'user' 
                           ? 'bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-text-primary ml-auto rounded-tr-sm' 
                           : 'bg-hexagon-surface border border-hexagon-border text-gray-300 mr-auto rounded-tl-sm'
@@ -654,11 +654,11 @@ export default function TutorPage() {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSend()}
                   placeholder="Type your message..."
-                  className="w-full bg-hexagon-surface border border-hexagon-border py-2.5 pl-3.5 pr-10 rounded-xl text-xs outline-none focus:border-hexagon-accent transition-colors"
+                  className="w-full bg-hexagon-surface/80 border border-hexagon-border py-3 pl-4 pr-10 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors shadow-inner"
                 />
                 <button 
                   onClick={handleSend}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-hexagon-accent hover:bg-hexagon-accent/10 transition-colors"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-hexagon-accent hover:bg-hexagon-accent/10 transition-colors"
                 >
                   <Send className="w-4 h-4" />
                 </button>

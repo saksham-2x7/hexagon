@@ -68,6 +68,7 @@ export function useAudioLipSync() {
     const dataArray = dataArrayRef.current || sharedDataArray;
     if (!analyser || !dataArray) return 0;
 
+    // @ts-expect-error TypeScript DOM typing mismatch with ArrayBufferLike
     analyser.getByteFrequencyData(dataArray);
 
     let sum = 0;
@@ -93,6 +94,7 @@ export function useAudioLipSync() {
       return { volume: 0, openness: 0, rounded: 0, consonant: 0 };
     }
 
+    // @ts-expect-error TypeScript DOM typing mismatch with ArrayBufferLike
     analyser.getByteFrequencyData(dataArray);
 
     // Frequency bands (with fftSize = 64, sampling ~44.1kHz -> ~689Hz per bin)

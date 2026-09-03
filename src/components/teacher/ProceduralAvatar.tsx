@@ -131,6 +131,10 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
         const mesh = child as THREE.SkinnedMesh;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        
+        // FIX: Disable frustum culling. ReadyPlayerMe / Mixamo rigs often have inaccurate 
+        // bounding boxes, causing body parts to disappear when rotated or viewed from angles.
+        mesh.frustumCulled = false;
 
         if (name === 'Wolf3D_Head') {
           headMeshRef.current = mesh;

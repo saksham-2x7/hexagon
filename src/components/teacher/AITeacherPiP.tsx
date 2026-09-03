@@ -97,11 +97,15 @@ export default function AITeacherPiP() {
           width: isExpanded ? 400 : 288,
           height: isExpanded ? 300 : 192
         }}
-        className="rounded-3xl overflow-hidden shadow-2xl border border-hexagon-border bg-hexagon-surface backdrop-blur-3xl flex flex-col pointer-events-auto relative group"
+        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+        className="rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] border border-white/5 bg-[#0A0C14]/80 backdrop-blur-3xl flex flex-col pointer-events-auto relative group p-[1px]"
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/10 via-transparent to-white/5 pointer-events-none" />
 
-        <div className="absolute top-3 right-3 flex gap-2 z-20">
+        <div className="bg-black/60 rounded-[23px] overflow-hidden flex flex-col w-full h-full relative z-10">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+          <div className="absolute top-3 right-3 flex gap-2 z-20">
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -158,6 +162,7 @@ export default function AITeacherPiP() {
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             />
           ))}
+        </div>
         </div>
       </motion.div>
     </div>

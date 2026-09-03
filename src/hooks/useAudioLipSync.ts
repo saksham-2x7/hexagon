@@ -68,8 +68,7 @@ export function useAudioLipSync() {
     const dataArray = dataArrayRef.current || sharedDataArray;
     if (!analyser || !dataArray) return 0;
 
-    // @ts-expect-error TypeScript DOM typing mismatch with ArrayBufferLike
-    analyser.getByteFrequencyData(dataArray);
+    analyser.getByteFrequencyData(dataArray as any);
 
     let sum = 0;
     const len = dataArray.length;
@@ -94,8 +93,7 @@ export function useAudioLipSync() {
       return { volume: 0, openness: 0, rounded: 0, consonant: 0 };
     }
 
-    // @ts-expect-error TypeScript DOM typing mismatch with ArrayBufferLike
-    analyser.getByteFrequencyData(dataArray);
+    analyser.getByteFrequencyData(dataArray as any);
 
     // Frequency bands (with fftSize = 64, sampling ~44.1kHz -> ~689Hz per bin)
     // Bin 0-3: 0 - 2.5kHz (Low / Vowel fundamental & Formant 1: A, E, O open jaw)

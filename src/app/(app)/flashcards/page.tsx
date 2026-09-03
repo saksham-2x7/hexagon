@@ -286,17 +286,17 @@ export default function FlashcardsPage() {
         onClick={() => setFlipped(!flipped)}
       >
         <motion.div
-          className="w-full h-full absolute inset-0 preserve-3d"
+          className="w-full h-full absolute inset-0 [transform-style:preserve-3d]"
           animate={{ rotateY: flipped ? 180 : 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           {/* Front Face */}
-          <div className="absolute inset-0 bg-hexagon-surface border border-hexagon-border rounded-3xl p-8 flex flex-col justify-between backface-hidden shadow-2xl backdrop-blur-md group-hover:border-hexagon-accent/40 transition-colors">
+          <div className="absolute inset-0 bg-[#07090E] border border-white/10 rounded-3xl p-8 flex flex-col justify-between [backface-visibility:hidden] shadow-2xl group-hover:border-purple-500/40 transition-colors">
             <div className="flex items-center justify-between text-xs text-gray-400">
               <span className="font-mono uppercase text-[10px] bg-white/5 px-2 py-0.5 rounded text-gray-300">Question</span>
-              <span className="text-[11px] text-hexagon-accent font-medium">Click to flip ↻</span>
+              <span className="text-[11px] text-purple-400 font-medium">Click to flip ↻</span>
             </div>
-            <h2 className="text-2xl font-bold text-center text-hexagon-text-primary px-4 leading-snug">
+            <h2 className="text-2xl font-bold text-center text-white px-4 leading-snug">
               {card.front}
             </h2>
             <div className="text-center text-xs text-gray-500 font-mono">
@@ -306,7 +306,7 @@ export default function FlashcardsPage() {
           
           {/* Back Face */}
           <div 
-            className="absolute inset-0 bg-hexagon-surface border border-hexagon-accent/40 rounded-3xl p-8 flex flex-col justify-between backface-hidden shadow-2xl backdrop-blur-md"
+            className="absolute inset-0 bg-[#07090E] border border-emerald-500/40 rounded-3xl p-8 flex flex-col justify-between [backface-visibility:hidden] shadow-2xl"
             style={{ transform: 'rotateY(180deg)' }}
           >
             <div className="flex items-center justify-between text-xs text-gray-400">

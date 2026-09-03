@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ router = APIRouter()
 class CreateSessionRequest(BaseModel):
     learner_profile: LearnerProfile
     current_topic: str
-    material_id: str | None = None
+    material_id: Optional[str] = None
 
 class UpdateStateRequest(BaseModel):
     state: TeachingState

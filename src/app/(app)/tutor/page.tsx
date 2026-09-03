@@ -68,7 +68,7 @@ function CameraDirector({
 
 export default function TutorPage() {
   const { profile, updateProfile } = useAuthStore();
-  const { teacherState, setTeacherState } = useAIIntentStore();
+  const { teacherState, setTeacherState, lessonPhase } = useAIIntentStore();
 
   const isMale = profile?.tutorGender === 'male';
   const name = isMale ? 'ALEX' : 'ARIA';
@@ -132,32 +132,21 @@ export default function TutorPage() {
     }
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
-      if (!apiKey) {
-        throw new Error("Missing NEXT_PUBLIC_ELEVENLABS_API_KEY in .env");
-      }
-      
-      // Adam for Male (Alex), Rachel for Female (Aria)
-      const voiceId = isMale ? "pNInz6obbfDQGcgMyIGb" : "21m00Tcm4TlvDq8ikWAM"; 
-      
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+      // Adam for Male (Alex), Rachel for Female (Aria) -> Is mapped in backend
+      const response = await fetch(`http://localhost:8000/api/v1/tts`, {
         method: "POST",
         headers: {
-          "Accept": "audio/mpeg",
-          "Content-Type": "application/json",
-          "xi-api-key": apiKey
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           text: text,
-          model_id: "eleven_multilingual_v2", // Supports English and Hindi natively
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
-          }
+          is_male: isMale
         })
       });
 
-      if (!response.ok) throw new Error("ElevenLabs API request failed.");
+      if (!response.ok) {
+        throw new Error(`Edge TTS API Error: ${response.status} ${response.statusText}`);
+      }
 
       const arrayBuffer = await response.arrayBuffer();
       const ctx = getAudioContext();
@@ -481,8 +470,32 @@ export default function TutorPage() {
         </div>
 
         {/* RIGHT: Digital Whiteboard & Interactive Learning Console */}
-        <div className="flex-1 flex flex-col p-5 gap-5 overflow-hidden">
+        <div className="flex-1 flex flex-col p-5 gap-4 overflow-hidden">
           
+          {/* Session Telemetry Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-hexagon-surface/50 border border-hexagon-border rounded-2xl shadow-sm backdrop-blur-md shrink-0">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[11px] font-mono font-medium text-gray-300 uppercase tracking-widest">Live Session</span>
+              </div>
+              <div className="h-4 w-[1px] bg-hexagon-border" />
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-gray-500 uppercase tracking-wider">Cognitive Load:</span>
+                <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 w-[45%]" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <span className="text-[11px] font-mono text-gray-400">Time: <span className="text-white">12:45</span> / 20:00</span>
+              <div className="px-2.5 py-1 rounded-md bg-hexagon-accent/10 border border-hexagon-accent/20 text-hexagon-accent text-[10px] font-bold font-mono tracking-wide uppercase">
+                Phase: {lessonPhase}
+              </div>
+            </div>
+          </div>
+
           {/* Interactive Subject Board */}
           <div className="flex-1 w-full rounded-[1.75rem] overflow-hidden border border-hexagon-border bg-hexagon-surface/40 shadow-xl relative flex flex-col">
             <NeuralNetworkBoard 
@@ -496,7 +509,7 @@ export default function TutorPage() {
           <div className="h-36 flex gap-4 shrink-0 relative">
             
             {/* Live Synchronized Transcript Box */}
-            <div className="flex-1 mr-[336px] bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-md">
+            <div className={`flex-1 transition-all duration-500 ease-in-out bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-md ${isTerminalOpen ? 'mr-[336px]' : 'mr-16'}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className={`p-1.5 rounded-lg ${
@@ -579,26 +592,27 @@ export default function TutorPage() {
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-
-                  <div className="flex-1 overflow-y-auto mb-3 space-y-3 scrollbar-hide flex flex-col justify-end">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden mb-3 space-y-3 scrollbar-hide flex flex-col pr-1">
                     {messages.length === 0 ? (
-                      <div className="text-xs text-gray-500 text-center py-4 flex flex-col items-center gap-1">
+                      <div className="text-xs text-gray-500 text-center py-4 flex flex-col items-center gap-1 mt-auto">
                         <Compass className="w-4 h-4 text-gray-600" />
                         <span>Answer or ask anything</span>
                       </div>
                     ) : (
-                      messages.slice(-12).map((m, i) => (
-                        <div 
-                          key={i} 
-                          className={`p-3 rounded-2xl text-[13px] max-w-[92%] leading-relaxed ${
-                            m.role === 'user' 
-                              ? 'bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-text-primary ml-auto rounded-tr-sm' 
-                              : 'bg-hexagon-surface border border-hexagon-border text-gray-300 mr-auto rounded-tl-sm'
-                          }`}
-                        >
-                          {m.text}
-                        </div>
-                      ))
+                      <div className="flex flex-col justify-end min-h-full space-y-3">
+                        {messages.slice(-12).map((m, i) => (
+                          <div 
+                            key={i} 
+                            className={`p-3.5 rounded-2xl text-[13px] max-w-[85%] leading-relaxed break-words shadow-md w-fit ${
+                              m.role === 'user' 
+                                ? 'bg-emerald-900/30 border border-emerald-500/30 text-emerald-100 self-end rounded-tr-sm' 
+                                : 'bg-[#0f141f] border border-white/5 text-gray-300 self-start rounded-tl-sm'
+                            }`}
+                          >
+                            {m.text}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
 
@@ -610,13 +624,13 @@ export default function TutorPage() {
                       onChange={e => setInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleSend()}
                       placeholder="Type your message..."
-                      className="w-full bg-hexagon-surface/80 border border-hexagon-border py-3 pl-4 pr-10 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors shadow-inner"
+                      className="w-full bg-[#0a0c10] border border-white/10 py-3.5 pl-5 pr-14 rounded-[1.25rem] text-sm outline-none focus:border-emerald-500/50 focus:bg-[#0f141f] transition-all shadow-inner text-white placeholder-gray-600"
                     />
                     <button 
                       onClick={handleSend}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-hexagon-accent hover:bg-hexagon-accent/10 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-black transition-all hover:scale-105 active:scale-95"
                     >
-                      <Send className="w-4 h-4" />
+                      <Send className="w-4 h-4 ml-[-2px] mt-[1px]" />
                     </button>
                   </div>
                 </motion.div>

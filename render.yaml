@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: virtual-hawks-backend
+    env: docker
+    plan: free
+    rootDir: .
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: PORT
+        value: "8000"

@@ -150,13 +150,13 @@ export default function ProgressPage() {
               </defs>
             </svg>
             <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-4xl font-black tracking-tight text-white">{masteryPercentage}%</span>
-              <span className="text-[10px] uppercase font-semibold text-gray-400 tracking-wider">Proficient</span>
+              <span className="text-4xl font-black tracking-tight text-hexagon-text-primary">{masteryPercentage}%</span>
+              <span className="text-[10px] uppercase font-semibold text-hexagon-text-secondary tracking-wider">Proficient</span>
             </div>
           </div>
 
           <p className="text-xs text-hexagon-text-secondary mt-2 max-w-xs leading-relaxed">
-            High retention in <strong className="text-white">Neural Networks</strong>. Revisit <strong className="text-orange-400">Gradient Descent</strong> to elevate to 85%+.
+            High retention in <strong className="text-hexagon-text-primary">Neural Networks</strong>. Revisit <strong className="text-orange-400">Gradient Descent</strong> to elevate to 85%+.
           </p>
         </div>
 
@@ -195,12 +195,12 @@ export default function ProgressPage() {
                         isSelected 
                           ? 'bg-hexagon-accent shadow-[0_0_15px_rgba(5,242,146,0.35)]' 
                           : item.goalMet 
-                            ? 'bg-white/20 group-hover:bg-white/40' 
-                            : 'bg-white/10 group-hover:bg-white/20'
+                            ? 'bg-hexagon-accent/30 group-hover:bg-hexagon-accent/50' 
+                            : 'bg-hexagon-border group-hover:bg-hexagon-border/80'
                       }`}
                     />
                   </div>
-                  <span className={`text-[11px] font-medium transition-colors ${isSelected ? 'text-hexagon-accent font-bold' : 'text-gray-400'}`}>
+                  <span className={`text-[11px] font-medium transition-colors ${isSelected ? 'text-hexagon-accent font-bold' : 'text-hexagon-text-secondary'}`}>
                     {item.day}
                   </span>
                 </div>
@@ -259,10 +259,10 @@ export default function ProgressPage() {
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
-                      <span className="text-[10px] text-gray-400 font-mono tracking-wider uppercase block mb-1">
+                      <span className="text-[10px] text-hexagon-text-secondary font-mono tracking-wider uppercase block mb-1">
                         {c.category}
                       </span>
-                      <h4 className="text-sm font-semibold text-white leading-snug">{c.name}</h4>
+                      <h4 className="text-sm font-semibold text-hexagon-text-primary leading-snug">{c.name}</h4>
                     </div>
                     <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
                       isReview ? 'bg-red-500/15 text-red-400 border border-red-500/25' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'

@@ -38,8 +38,9 @@ function PlanGenerationContent() {
     const totalTimer = setTimeout(() => {
       setLessonPhase('Explain');
       setRepresentation('webgl');
-      router.push('/lesson/demo-123'); // Go to actual lesson
-    }, 7000);
+      const sessionId = searchParams.get('sessionId') || '';
+      router.push(`/lesson/demo-123${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`);
+    }, 5500);
 
     return () => {
       clearInterval(textInterval);

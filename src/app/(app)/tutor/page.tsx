@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAIIntentStore } from '@/store/useAIIntentStore';
 import { useAudioLipSync } from '@/hooks/useAudioLipSync';
+import { speechSynthesizer } from '@/services/speechSynthesizer';
 import ProceduralAvatar from '../../../components/teacher/ProceduralAvatar';
 import { NeuralNetworkBoard } from '../../../components/teacher/NeuralNetworkBoard';
 
@@ -24,74 +25,30 @@ function CameraDirector({
   resetTrigger
 }: { 
   viewMode: CameraViewMode; 
-  orbitEnabled: boolean; 
+  orbitEnabled: boolean;
   resetTrigger: number;
 }) {
-  const { scene } = useThree();
+  const { camera } = useThree();
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
-  const transitionRef = useRef(true);
-  const prevModeRef = useRef(viewMode);
-  const prevResetRef = useRef(resetTrigger);
 
-  useFrame((state, delta) => {
-    // Dynamic Head Bone tracking for standard metric height (feet at Y=0)
-    let headY = 1.68; // Default human head/eye height
-    scene.traverse((obj) => {
-      if (obj.type === 'Bone' && (obj.name === 'Head' || obj.name === 'mixamorigHead')) {
-        const wp = new THREE.Vector3();
-        obj.getWorldPosition(wp);
-        if (wp.y > 1.2 && wp.y < 2.3) {
-          headY = wp.y;
-        }
+  useEffect(() => {
+    if (controlsRef.current) {
+      if (viewMode === 'portrait') {
+        // Direct face & lip-sync focus
+        camera.position.set(0, 1.66, 0.85);
+        controlsRef.current.target.set(0, 1.62, 0);
+      } else if (viewMode === 'full') {
+        // Full body / torso view
+        camera.position.set(0, 1.35, 2.30);
+        controlsRef.current.target.set(0, 1.25, 0);
+      } else {
+        // Perfect upper-body classroom view: face, smile, shoulders, gestures
+        camera.position.set(0, 1.58, 1.50);
+        controlsRef.current.target.set(0, 1.48, 0);
       }
-    });
-
-    let targetY = headY;
-    let posY = headY;
-    let posZ = 1.35;
-
-    switch (viewMode) {
-      case 'portrait':
-        // Dead-center on the face, eyes, smile, and gestures
-        targetY = headY + 0.01;
-        posY = headY + 0.02;
-        posZ = 0.82;
-        break;
-      case 'full':
-        // Full torso / upper body view
-        targetY = headY - 0.38;
-        posY = headY - 0.32;
-        posZ = 2.30;
-        break;
-      case 'classroom':
-      default:
-        // Perfect upper-body educator framing: full head, face, shoulders, and chest
-        targetY = headY - 0.10;
-        posY = headY - 0.04;
-        posZ = 1.55;
-        break;
+      controlsRef.current.update();
     }
-
-    const targetPos = new THREE.Vector3(0, posY, posZ);
-    const targetLookAt = new THREE.Vector3(0, targetY, 0);
-
-    if (prevModeRef.current !== viewMode || prevResetRef.current !== resetTrigger) {
-      prevModeRef.current = viewMode;
-      prevResetRef.current = resetTrigger;
-      transitionRef.current = true;
-    }
-
-    if (transitionRef.current) {
-      state.camera.position.lerp(targetPos, delta * 5.0);
-      if (controlsRef.current) {
-        controlsRef.current.target.lerp(targetLookAt, delta * 5.0);
-        controlsRef.current.update();
-      }
-      if (state.camera.position.distanceTo(targetPos) < 0.015) {
-        transitionRef.current = false;
-      }
-    }
-  });
+  }, [viewMode, resetTrigger, camera]);
 
   return (
     <OrbitControls
@@ -103,7 +60,7 @@ function CameraDirector({
       enablePan={false}
       minPolarAngle={Math.PI / 3.4}
       maxPolarAngle={Math.PI / 1.8}
-      target={[0, 1.46, 0]}
+      target={[0, 1.48, 0]}
     />
   );
 }
@@ -151,29 +108,41 @@ export default function TutorPage() {
     }
   }, [demoState]);
 
-  const { playTestSpeech } = useAudioLipSync();
+  // Sync SpeechSynthesizer mute state with voice toggle
+  useEffect(() => {
+    speechSynthesizer.setMuted(!voiceEnabled);
+  }, [voiceEnabled]);
 
-  // Voice Speech Engine powered by Web Audio API
-  const speakVoice = (_text: string, durationMs: number = 3800) => {
-    if (voiceEnabled) {
-      try {
-        playTestSpeech(Math.max(durationMs / 1000 - 0.2, 0.8));
-      } catch (e) {
-        console.warn('Speech audio engine info:', e);
-      }
-    }
+  // Voice Speech Engine powered by SpeechSynthesizer & Phonetic Viseme Parser
+  const speakVoice = (text: string) => {
+    speechSynthesizer.speak(text, {
+      gender: isMale ? 'male' : 'female',
+      rate: 1.0,
+      pitch: isMale ? 0.95 : 1.05
+    });
   };
 
-  // Demo sequence orchestration
+  // Demo sequence orchestration with synchronized speech & phoneme timeline
   useEffect(() => {
     let isCancelled = false;
 
-    const speak = (text: string, state: import('@/types/teacher').TeacherState = 'speaking', duration: number = 3800) => {
-      if (isCancelled) return Promise.resolve();
+    const speak = async (
+      text: string, 
+      state: import('@/types/teacher').TeacherState = 'speaking', 
+      minDurationMs: number = 3200
+    ) => {
+      if (isCancelled) return;
       setCaption(text);
       setTeacherState(state, text);
-      speakVoice(text, duration);
-      return new Promise(resolve => setTimeout(resolve, duration));
+
+      const speechPromise = speechSynthesizer.speak(text, {
+        gender: isMale ? 'male' : 'female',
+        rate: 1.0,
+        pitch: isMale ? 0.95 : 1.05
+      });
+      const timerPromise = new Promise(resolve => setTimeout(resolve, minDurationMs));
+      await Promise.all([speechPromise, timerPromise]);
+      await new Promise(resolve => setTimeout(resolve, 350));
     };
 
     const runDemo = async () => {
@@ -205,8 +174,9 @@ export default function TutorPage() {
 
     return () => {
       isCancelled = true;
+      speechSynthesizer.stop();
     };
-  }, [demoState, name, setTeacherState, voiceEnabled]);
+  }, [demoState, name, isMale, setTeacherState]);
 
   const handleWeightChange = (val: number) => {
     setWeight(val);
@@ -363,11 +333,17 @@ export default function TutorPage() {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => {
-                  setTeacherState('teaching', 'Demonstrating real-time audio lip-sync and ActorCore gesture mapping.');
-                  playTestSpeech(3.5);
+                  const testPhrase = "Listen closely and observe my lip articulation! Every vowel and consonant shapes my mouth with exact phonemes, from open vowels to closed lips.";
+                  setCaption(testPhrase);
+                  setTeacherState('teaching', testPhrase);
+                  speechSynthesizer.speak(testPhrase, {
+                    gender: isMale ? 'male' : 'female',
+                    rate: 1.0,
+                    pitch: isMale ? 0.95 : 1.05
+                  });
                 }}
                 className="bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-accent hover:bg-hexagon-accent/25 px-3 py-1.5 rounded-full backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium shadow-sm hover:scale-105 active:scale-95"
-                title="Test real-time Web Audio API lip-sync"
+                title="Test real-time phonetic speech lip-sync"
               >
                 <Sparkles className="w-3.5 h-3.5" /> Test Lip-Sync
               </button>
@@ -387,14 +363,17 @@ export default function TutorPage() {
               className="w-full h-full"
               shadows
             >
-              <ambientLight intensity={0.9} />
-              <directionalLight position={[3, 4, 3]} intensity={1.8} color="#ffffff" castShadow />
-              <directionalLight position={[-3, 2, -2]} intensity={1.2} color="#00FF9D" />
-              <directionalLight position={[0, -2, -2]} intensity={0.4} color="#3b82f6" />
+              <ambientLight intensity={1.1} />
+              {/* Front Portrait Key Light illuminating face, expressions, and lips */}
+              <pointLight position={[0, 1.70, 1.2]} intensity={3.5} distance={4.5} color="#fff8f2" />
+              <directionalLight position={[0, 1.65, 2.2]} intensity={1.8} color="#ffffff" />
+              <directionalLight position={[2, 3, 2]} intensity={1.4} color="#ffffff" castShadow />
+              <directionalLight position={[-2.5, 2, -1.5]} intensity={1.2} color="#00FF9D" />
+              <directionalLight position={[0, -1, 1]} intensity={0.5} color="#38bdf8" />
               <Environment preset="city" />
               
               <ProceduralAvatar 
-                lookAtBoard={demoState !== 'intro'} 
+                lookAtBoard={false} 
                 pointAtBoard={teacherState === 'pointing'} 
               />
 

@@ -7,6 +7,7 @@ import ProceduralAvatar from './ProceduralAvatar';
 import { useEffect, useState, useRef } from 'react';
 import { Mic, MicOff, Maximize2, Minimize2, MessageSquare } from 'lucide-react';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
+import { speechSynthesizer } from '../../services/speechSynthesizer';
 
 export default function AITeacherPiP() {
   const [heights, setHeights] = useState([20, 40, 60, 40, 20]);
@@ -19,6 +20,10 @@ export default function AITeacherPiP() {
   const lessonPhase = useAIIntentStore(state => state.lessonPhase);
   const teacherState = useAIIntentStore(state => state.teacherState);
   const captionText = useAIIntentStore(state => state.teacherMessage);
+
+  useEffect(() => {
+    speechSynthesizer.setMuted(isMuted);
+  }, [isMuted]);
 
   // Audio Waveform Animation
   useEffect(() => {

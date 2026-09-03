@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LessonHUD from './LessonHUD';
 import AITeacherPiP from '../teacher/AITeacherPiP';
-import MockAIEngine from './MockAIEngine';
+import LiveAIEngine from './LiveAIEngine';
 import QuestionPanel from '../../features/assessment/QuestionPanel';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -37,7 +37,7 @@ export default function LessonShell({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       <AITeacherPiP />
-      <MockAIEngine />
+      <LiveAIEngine />
     </div>
   );
 }

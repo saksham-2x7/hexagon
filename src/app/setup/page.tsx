@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
+import { toFastAPILearnerProfile } from "@/utils/toFastAPILearnerProfile";
+import { liveSSEClient } from "@/services/liveSSEClient";
 import { ChevronRight, ArrowLeft, Sparkles, BookOpen, Brain, Clock, Volume2 } from "lucide-react";
 
 const STEPS = [
@@ -40,9 +42,23 @@ export default function SetupPage() {
     setIsGenerating(true);
     updateProfile({ level, tutorGender, dailyGoalMinutes: time });
     
-    // Simulate cinematic planning state
-    await new Promise(r => setTimeout(r, 1500));
-    router.push(`/lesson/plan-generation?topic=${encodeURIComponent(goal)}`);
+    // 1. Transform profile into FastAPI Pydantic schema using Nishita's transformer
+    const fastApiPayload = toFastAPILearnerProfile(
+      { ...profile, level, tutorGender, dailyGoalMinutes: time },
+      goal || "Neural Networks"
+    );
+
+    // 2. Register session with Aaditya's backend (with automatic local fallback)
+    let sessionId = `session_${Date.now()}`;
+    try {
+      sessionId = await liveSSEClient.createSession(fastApiPayload);
+    } catch (e) {
+      console.warn("Session initiation error:", e);
+    }
+
+    // Cinematic planning transition
+    await new Promise(r => setTimeout(r, 1200));
+    router.push(`/lesson/plan-generation?topic=${encodeURIComponent(goal || "Neural Networks")}&sessionId=${encodeURIComponent(sessionId)}`);
   };
 
   if (!isAuthenticated || !profile) return null;

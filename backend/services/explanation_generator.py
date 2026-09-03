@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
-from core.llm_client import generate_structured_output
+from app_core.llm_client import generate_structured_output
 
 class TeachingSegment(BaseModel):
     spoken_script: str = Field(..., description="The conversational, empathetic spoken dialogue for the AI avatar to say.")

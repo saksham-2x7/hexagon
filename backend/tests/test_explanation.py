@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.explanation_generator import generate_teaching_segment
 
-def main():
+def test_explanation():
     print("--- Testing AI Explanation Generator Module ---")
     try:
         # Dummy node based on Milestone 2 output
@@ -28,7 +28,6 @@ def main():
         print(segment.model_dump_json(indent=2))
     
     except Exception as e:
-        print(f"\n❌ FAILURE: {str(e)}")
+        raise e
 
-if __name__ == "__main__":
-    main()
+

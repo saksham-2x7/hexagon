@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.lesson_planner import generate_lesson_plan
 
-def main():
+def test_planner():
     print("--- Testing AI Lesson Planner Module ---")
     try:
         topic = "Newton's Laws"
@@ -25,7 +25,6 @@ def main():
         print(plan.model_dump_json(indent=2))
     
     except Exception as e:
-        print(f"\n❌ FAILURE: {str(e)}")
+        raise e
 
-if __name__ == "__main__":
-    main()
+

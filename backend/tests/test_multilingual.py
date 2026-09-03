@@ -10,7 +10,7 @@ def print_trace(step, data):
     print(f"\n[{step}]")
     print(json.dumps(data, indent=2))
 
-def main():
+def test_multilingual():
     print("--- Testing Multilingual Support (Hinglish) ---")
     try:
         # 1. Initialize
@@ -28,9 +28,8 @@ def main():
         print("\n✅ SUCCESS: Multilingual test generated content in Hinglish!")
     
     except Exception as e:
-        print(f"\n❌ FAILURE: {str(e)}")
+        raise e
         import traceback
         traceback.print_exc()
 
-if __name__ == "__main__":
-    main()
+

@@ -10,7 +10,7 @@ def print_trace(step, data):
     print(f"\n[{step}]")
     print(json.dumps(data, indent=2))
 
-def main():
+def test_orchestrator():
     print("--- Testing Adaptive Orchestrator (Core Loop) ---")
     try:
         # 1. Initialize
@@ -51,9 +51,8 @@ def main():
         print(json.dumps(session.to_dict(), indent=2))
     
     except Exception as e:
-        print(f"\n❌ FAILURE: {str(e)}")
+        raise e
         import traceback
         traceback.print_exc()
 
-if __name__ == "__main__":
-    main()
+

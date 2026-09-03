@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.report_generator import generate_learning_report
 
-def main():
+def test_report():
     print("--- Testing Post-Lesson Assessment & Feedback Module ---")
     try:
         mock_session_state = {
@@ -24,7 +24,6 @@ def main():
         print(report.model_dump_json(indent=2))
     
     except Exception as e:
-        print(f"\n❌ FAILURE: {str(e)}")
+        raise e
 
-if __name__ == "__main__":
-    main()
+

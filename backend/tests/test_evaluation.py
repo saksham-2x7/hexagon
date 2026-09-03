@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.evaluation_service import generate_question, evaluate_answer
 
-def main():
+def test_evaluation():
     print("--- Testing AI Interactive Evaluation Module ---")
     try:
         concept = "Newton's First Law: The Law of Inertia (An object at rest stays at rest, and an object in motion stays in motion unless acted upon by an unbalanced force like friction)"
@@ -32,7 +32,6 @@ def main():
         print(evaluation.model_dump_json(indent=2))
     
     except Exception as e:
-        print(f"\n❌ FAILURE: {str(e)}")
+        raise e
 
-if __name__ == "__main__":
-    main()
+

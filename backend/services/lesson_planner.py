@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List
-from core.llm_client import generate_structured_output
+from app_core.llm_client import generate_structured_output
 
 class LessonNode(BaseModel):
     concept_name: str = Field(..., description="The core concept to be taught in this segment.")

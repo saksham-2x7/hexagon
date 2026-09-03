@@ -151,58 +151,91 @@ export default function TutorPage() {
     }
   }, [demoState]);
 
-  const { playTestSpeech } = useAudioLipSync();
+  const { playTestSpeech, playAudioBuffer, getAudioContext } = useAudioLipSync();
 
-  // Voice Speech Engine powered by standard browser TTS
-  const speakVoice = (text: string, durationMs: number = 3800) => {
-    if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        const voices = window.speechSynthesis.getVoices();
-        // Base filter by language (support Hindi / English based on profile)
-        const langPrefix = (language.toLowerCase() === 'hi') ? 'hi' : 'en';
-        let localeVoices = voices.filter(v => v.lang.toLowerCase().startsWith(langPrefix));
-        if (localeVoices.length === 0) localeVoices = voices.filter(v => v.lang.startsWith('en'));
+  // Voice Speech Engine powered by ElevenLabs API with Web Speech API Fallback
+  const speakVoice = async (text: string, durationMs: number = 3800) => {
+    if (!voiceEnabled) return;
 
-        // Identify male/female voices by common OS names
-        const femaleNames = ['zira', 'samantha', 'victoria', 'susan', 'hazel', 'google us english', 'female', 'aditi'];
-        const maleNames = ['david', 'mark', 'richard', 'alex', 'daniel', 'google uk english male', 'male', 'ravi'];
+    try {
+      const apiKey = "243f7bfba628b6e6e211fe00a41163de1e881d0713d05e09732b029c25560fae";
+      // Adam for Male (Alex), Rachel for Female (Aria)
+      const voiceId = isMale ? "pNInz6obbfDQGcgMyIGb" : "21m00Tcm4TlvDq8ikWAM"; 
+      
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+        method: "POST",
+        headers: {
+          "Accept": "audio/mpeg",
+          "Content-Type": "application/json",
+          "xi-api-key": apiKey
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: "eleven_multilingual_v2", // Supports English and Hindi natively
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75
+          }
+        })
+      });
 
-        // Filter voices matching the requested gender
-        const genderMatch = localeVoices.filter(v => {
-          const lowerName = v.name.toLowerCase();
-          return isMale 
-            ? maleNames.some(n => lowerName.includes(n))
-            : femaleNames.some(n => lowerName.includes(n));
-        });
+      if (!response.ok) throw new Error("ElevenLabs API request failed.");
 
-        // Prioritize ultra-realistic "Natural" or "Online" neural voices (Edge/Chrome)
-        const premiumVoices = genderMatch.filter(v => 
-          v.name.toLowerCase().includes('natural') || 
-          v.name.toLowerCase().includes('online')
-        );
+      const arrayBuffer = await response.arrayBuffer();
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      
+      // Decode the MP3 stream into raw PCM audio and route it through the lip-sync AnalyserNode
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      playAudioBuffer(audioBuffer);
 
-        if (premiumVoices.length > 0) {
-          utterance.voice = premiumVoices[0];
-        } else if (genderMatch.length > 0) {
-          utterance.voice = genderMatch[0];
-        } else if (localeVoices.length > 0) {
-          // Safe fallback: pick the first one that ISN'T explicitly the wrong gender
-          const safeFallback = localeVoices.find(v => {
+    } catch (apiError) {
+      console.warn("ElevenLabs TTS failed, falling back to Web Speech:", apiError);
+      
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          
+          const voices = window.speechSynthesis.getVoices();
+          const langPrefix = (language.toLowerCase() === 'hi') ? 'hi' : 'en';
+          let localeVoices = voices.filter(v => v.lang.toLowerCase().startsWith(langPrefix));
+          if (localeVoices.length === 0) localeVoices = voices.filter(v => v.lang.startsWith('en'));
+
+          const femaleNames = ['zira', 'samantha', 'victoria', 'susan', 'hazel', 'google us english', 'female', 'aditi'];
+          const maleNames = ['david', 'mark', 'richard', 'alex', 'daniel', 'google uk english male', 'male', 'ravi'];
+
+          const genderMatch = localeVoices.filter(v => {
             const lowerName = v.name.toLowerCase();
             return isMale 
-              ? !femaleNames.some(n => lowerName.includes(n)) 
-              : !maleNames.some(n => lowerName.includes(n));
+              ? maleNames.some(n => lowerName.includes(n))
+              : femaleNames.some(n => lowerName.includes(n));
           });
-          utterance.voice = safeFallback || localeVoices[0];
+
+          const premiumVoices = genderMatch.filter(v => 
+            v.name.toLowerCase().includes('natural') || 
+            v.name.toLowerCase().includes('online')
+          );
+
+          if (premiumVoices.length > 0) {
+            utterance.voice = premiumVoices[0];
+          } else if (genderMatch.length > 0) {
+            utterance.voice = genderMatch[0];
+          } else if (localeVoices.length > 0) {
+            const safeFallback = localeVoices.find(v => {
+              const lowerName = v.name.toLowerCase();
+              return isMale 
+                ? !femaleNames.some(n => lowerName.includes(n)) 
+                : !maleNames.some(n => lowerName.includes(n));
+            });
+            utterance.voice = safeFallback || localeVoices[0];
+          }
+          
+          utterance.rate = 1.05;
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          console.warn('Speech audio engine info:', e);
         }
-        
-        utterance.rate = 1.05;
-        window.speechSynthesis.speak(utterance);
-      } catch (e) {
-        console.warn('Speech audio engine info:', e);
       }
     }
   };

@@ -194,7 +194,7 @@ export default function WebGLRepresentation({ context: _context }: Representatio
         <ambientLight intensity={0.2} />
         <directionalLight position={[5, 5, 5]} intensity={1} color="#4A90E2" />
         <directionalLight position={[-5, -5, -5]} intensity={0.5} color="#E24A90" />
-        <Environment preset="city" />
+        <Environment files="/potsdamer_platz_1k.hdr" />
         
         <NeuralNetwork />
 

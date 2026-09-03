@@ -7,6 +7,7 @@ import ProceduralAvatar from './ProceduralAvatar';
 import { useEffect, useState, useRef } from 'react';
 import { Mic, MicOff, Maximize2, Minimize2, MessageSquare } from 'lucide-react';
 import { useAIIntentStore } from '../../store/useAIIntentStore';
+import { speechSynthesizer } from '../../services/speechSynthesizer';
 
 export default function AITeacherPiP() {
   const [heights, setHeights] = useState([20, 40, 60, 40, 20]);
@@ -19,6 +20,10 @@ export default function AITeacherPiP() {
   const lessonPhase = useAIIntentStore(state => state.lessonPhase);
   const teacherState = useAIIntentStore(state => state.teacherState);
   const captionText = useAIIntentStore(state => state.teacherMessage);
+
+  useEffect(() => {
+    speechSynthesizer.setMuted(isMuted);
+  }, [isMuted]);
 
   // Audio Waveform Animation
   useEffect(() => {
@@ -135,7 +140,7 @@ export default function AITeacherPiP() {
               <ambientLight intensity={0.9} />
               <directionalLight position={[2, 3, 2]} intensity={1.5} />
               <directionalLight position={[-2, 1, -1]} intensity={0.8} color="#00FF9D" />
-              <Environment preset="city" />
+              <Environment files="/potsdamer_platz_1k.hdr" />
               <ProceduralAvatar />
               <OrbitControls enableZoom={false} enablePan={false} target={[0, 1.50, 0]} />
             </Canvas>

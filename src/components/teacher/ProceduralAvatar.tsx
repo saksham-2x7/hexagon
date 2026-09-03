@@ -5,12 +5,21 @@ import { useGLTF, useAnimations, useFBX } from '@react-three/drei';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAIIntentStore } from '@/store/useAIIntentStore';
 import { useAudioLipSync } from '@/hooks/useAudioLipSync';
+import { speechSynthesizer } from '@/services/speechSynthesizer';
+import { VisemeName } from '@/utils/phonetics';
+import { SkeletonUtils } from 'three-stdlib';
 import * as THREE from 'three';
 
 interface ProceduralAvatarProps {
   lookAtBoard?: boolean;
   pointAtBoard?: boolean;
 }
+
+const ALL_OCULUS_VISEMES: VisemeName[] = [
+  'viseme_sil', 'viseme_PP', 'viseme_FF', 'viseme_TH', 'viseme_DD',
+  'viseme_kk', 'viseme_CH', 'viseme_SS', 'viseme_nn', 'viseme_RR',
+  'viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_U'
+];
 
 // Inner avatar component wrapped in Suspense
 function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAvatarProps) {
@@ -29,19 +38,18 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
   const modelUrl = isMale ? '/models/alex_v2.glb' : '/models/aria_v2.glb';
   const { scene } = useGLTF(modelUrl);
 
-  // Clone scene cleanly so instances do not conflict
+  // Clone scene with proper Skeleton and SkinnedMesh bone bindings
   const clonedScene = useMemo(() => {
-    const s = scene.clone(true);
+    const s = SkeletonUtils.clone(scene);
     s.scale.set(1, 1, 1);
     return s;
   }, [scene, modelUrl]);
 
-  // Bone references
+  // Bone & Mesh references
   const headRef = useRef<THREE.Object3D | null>(null);
   const neckRef = useRef<THREE.Object3D | null>(null);
   const spineRef = useRef<THREE.Object3D | null>(null);
-  const leftArmRef = useRef<THREE.Object3D | null>(null);
-  const rightArmRef = useRef<THREE.Object3D | null>(null);
+  const jawRef = useRef<THREE.Object3D | null>(null);
   const headMeshRef = useRef<THREE.SkinnedMesh | null>(null);
   const teethMeshRef = useRef<THREE.SkinnedMesh | null>(null);
 
@@ -49,7 +57,7 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
   const { animations: idleClips } = useFBX('/animations/Idle.fbx');
   const { animations: explainingClips } = useFBX('/animations/Explaining.fbx');
   const { animations: pointingClips } = useFBX('/animations/Pointing.fbx');
-  const { animations: greetingClips } = useFBX('/animations/Standing Greeting.fbx');
+  const { animations: greetingClips } = useFBX('/animations/Greeting.fbx');
 
   // Clone and name clips immutably for React Compiler safety
   const animationClips = useMemo(() => {
@@ -113,19 +121,17 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
     headRef.current = null;
     neckRef.current = null;
     spineRef.current = null;
-    leftArmRef.current = null;
-    rightArmRef.current = null;
+    jawRef.current = null;
     headMeshRef.current = null;
     teethMeshRef.current = null;
 
     clonedScene.traverse((child) => {
       const name = child.name;
 
-      if (name === 'Head') headRef.current = child;
-      if (name === 'Neck') neckRef.current = child;
+      if (name === 'Head' || name === 'mixamorigHead') headRef.current = child;
+      if (name === 'Neck' || name === 'mixamorigNeck') neckRef.current = child;
       if (name === 'Spine2' || name === 'Spine1') spineRef.current = child;
-      if (name === 'LeftArm') leftArmRef.current = child;
-      if (name === 'RightArm') rightArmRef.current = child;
+      if (name === 'Jaw' || name === 'mixamorigJaw') jawRef.current = child;
 
       if ((child as THREE.SkinnedMesh).isSkinnedMesh) {
         const mesh = child as THREE.SkinnedMesh;
@@ -138,19 +144,21 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
 
         if (name === 'Wolf3D_Head') {
           headMeshRef.current = mesh;
-        }
-        if (name === 'Wolf3D_Teeth') {
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        } else if (name === 'Wolf3D_Teeth') {
           teethMeshRef.current = mesh;
-        }
-
-        // Enhance material aesthetics: subtle sheen and skin tone warmth
-        if (mesh.material) {
-          const mat = (mesh.material as THREE.Material).clone();
-          if (mat instanceof THREE.MeshStandardMaterial) {
-            mat.envMapIntensity = 1.1;
-            mat.roughness = Math.max(mat.roughness, 0.45);
-          }
-          mesh.material = mat;
+          mesh.castShadow = false;
+        } else if (name === 'Wolf3D_Hair') {
+          // Prevent hair bangs from casting dark shadow over eyes & mouth
+          mesh.castShadow = false;
+          mesh.receiveShadow = false;
+        } else if (name === 'Wolf3D_Glasses') {
+          // Hide heavy occluding glasses so eyes and expressions are fully visible
+          mesh.visible = false;
+        } else {
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
         }
       }
     });
@@ -161,10 +169,10 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
   const nextBlinkRef = useRef(3.0);
   const isBlinkingRef = useRef(false);
 
-  // Real-time smoothed phonemes (fast attack, smooth release)
-  const smoothedOpennessRef = useRef(0);
-  const smoothedRoundedRef = useRef(0);
-  const smoothedConsonantRef = useRef(0);
+  // Real-time phoneme viseme weights (tracking each of the 15 Oculus visemes)
+  const currentVisemeWeights = useRef<Record<string, number>>({});
+  const smoothedMouthOpenRef = useRef(0);
+  const smoothedBrowUpRef = useRef(0);
 
   // Frame animation loop: Head tracking, breathing, natural blinking, real-time Web Audio API lip-sync
   useFrame((state, rawDelta) => {
@@ -178,45 +186,45 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
       spineRef.current.rotation.x = THREE.MathUtils.lerp(spineRef.current.rotation.x, breath, delta * 3);
     }
 
-    // 2. Gaze & Head Tracking (Look at student cursor, blackboard, or thoughtful tilt)
+    // 2. Gaze & Head Tracking: Direct, engaged eye contact with student + pointer tracking
     if (headRef.current) {
-      let targetYaw = 0;
-      let targetPitch = 0;
+      let targetYaw = (state.pointer.x * Math.PI) / 12;
+      let targetPitch = -(state.pointer.y * Math.PI) / 18;
       let targetRoll = 0;
 
-      if (lookAtBoard || pointAtBoard || teacherState === 'pointing') {
-        // Turn gently towards digital chalkboard on the right
-        targetYaw = 0.45;
-        targetPitch = 0.05;
+      if (pointAtBoard || teacherState === 'pointing') {
+        // Subtle glance towards the digital board on screen-right while pointing
+        targetYaw = -0.26;
+        targetPitch = 0.02;
       } else if (teacherState === 'thinking') {
         // Expressive pensive tilt
-        targetYaw = 0.18;
-        targetPitch = 0.12;
-        targetRoll = 0.08;
-      } else {
-        // Softly track student's pointer for human-like eye contact
-        targetYaw = (state.pointer.x * Math.PI) / 9;
-        targetPitch = -(state.pointer.y * Math.PI) / 14;
+        targetYaw = 0.12;
+        targetPitch = 0.08;
+        targetRoll = 0.05;
       }
 
-      // Add gentle organic micro-movements
+      // Add gentle organic micro-movements + speech head nod
+      const isSpeakingActive = speechSynthesizer.getIsSpeaking() || isSpeaking;
+      const speechNod = isSpeakingActive ? Math.sin(t * 7) * 0.025 : 0;
       const microSwayYaw = Math.sin(t * 0.9) * 0.015;
       const microSwayPitch = Math.cos(t * 1.2) * 0.01;
 
+      // Active head orientation: counteract FBX head tilt so educator looks directly into the camera/student's eyes
+      const baseFacingYaw = isMale ? 0.0 : -0.75; // Aria's FBX rig head offset
       headRef.current.rotation.y = THREE.MathUtils.lerp(
         headRef.current.rotation.y,
-        targetYaw + microSwayYaw,
-        delta * 3.5
+        baseFacingYaw + (state.pointer.x * Math.PI) / 14 + microSwayYaw,
+        delta * 4.5
       );
       headRef.current.rotation.x = THREE.MathUtils.lerp(
         headRef.current.rotation.x,
-        targetPitch + microSwayPitch,
-        delta * 3.5
+        0.02 - (state.pointer.y * Math.PI) / 18 + microSwayPitch + speechNod,
+        delta * 4.5
       );
       headRef.current.rotation.z = THREE.MathUtils.lerp(
         headRef.current.rotation.z,
         targetRoll,
-        delta * 3.5
+        delta * 4.5
       );
     }
 
@@ -243,65 +251,103 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
         }
       }
 
-      // 4. Real-time Web Audio API Lip-Sync & Multi-Band Formant Analysis
-      const phonemes = getPhonemeWeights();
-      const audioVolume = phonemes.volume;
+      // 4. Real-time Phonetic Lip-Sync with Full 15 Oculus Visemes
+      const activeCue = speechSynthesizer.getCurrentCue();
+      const isSynthSpeaking = speechSynthesizer.getIsSpeaking();
+      const audioPhonemes = getPhonemeWeights();
+      const hasExternalAudio = audioPhonemes.volume > 0.02;
 
-      // Morph target indices supporting both standard and Ready Player Me conventions
-      const mouthOpenIdx = dict['mouthOpen'] ?? dict['viseme_aa'] ?? dict['viseme_AA'];
-      const visemeOIdx = dict['viseme_O'] ?? dict['viseme_o'] ?? dict['viseme_U'];
-      const visemeIIdx = dict['viseme_I'] ?? dict['viseme_i'] ?? dict['viseme_E'];
+      // Check if currently articulating
+      const isArticulating = isSynthSpeaking || hasExternalAudio || isSpeaking;
 
-      if (audioVolume > 0.015) {
-        // Real-time Web Audio API speech driving the mouth morph targets
-        // Fast attack (delta * 24) so syllables open immediately; smooth decay (delta * 16)
-        smoothedOpennessRef.current = THREE.MathUtils.lerp(
-          smoothedOpennessRef.current,
-          Math.min(phonemes.openness * 1.35, 1.0),
-          delta * 24
-        );
-        smoothedRoundedRef.current = THREE.MathUtils.lerp(
-          smoothedRoundedRef.current,
-          Math.min(phonemes.rounded * 1.25, 1.0),
-          delta * 22
-        );
-        smoothedConsonantRef.current = THREE.MathUtils.lerp(
-          smoothedConsonantRef.current,
-          Math.min(phonemes.consonant * 0.9, 0.8),
+      // Track each of the 15 Oculus visemes with organic co-articulation lerping
+      for (const viseme of ALL_OCULUS_VISEMES) {
+        let target = 0;
+
+        if (isSynthSpeaking) {
+          if (activeCue.viseme === viseme) {
+            target = activeCue.intensity;
+          }
+        } else if (hasExternalAudio) {
+          // Frequency-formant mapping when external audio stream is active
+          if (viseme === 'viseme_aa' || viseme === 'viseme_O') {
+            target = audioPhonemes.openness;
+          } else if (viseme === 'viseme_U') {
+            target = audioPhonemes.rounded;
+          } else if (viseme === 'viseme_I' || viseme === 'viseme_SS') {
+            target = audioPhonemes.consonant;
+          }
+        } else if (isSpeaking) {
+          // Graceful procedural syllable fallback
+          const syl = Math.abs(Math.sin(t * 8) * Math.cos(t * 12));
+          if (viseme === 'viseme_aa') target = syl * 0.7;
+          if (viseme === 'viseme_O') target = Math.abs(Math.sin(t * 5)) * 0.4;
+          if (viseme === 'viseme_I') target = Math.abs(Math.cos(t * 7)) * 0.3;
+        }
+
+        const current = currentVisemeWeights.current[viseme] || 0;
+        const nextVal = THREE.MathUtils.lerp(current, target, delta * 26);
+        currentVisemeWeights.current[viseme] = nextVal;
+
+        // Ready Player Me supports viseme_aa or viseme_AA
+        const idx = dict[viseme] ?? (viseme === 'viseme_aa' ? dict['viseme_AA'] : undefined);
+        if (idx !== undefined) {
+          influences[idx] = nextVal;
+        }
+      }
+
+      // Also drive mouthOpen (especially for Aria and standard VRM morph targets)
+      let targetMouthOpen = 0;
+      if (isSynthSpeaking) {
+        if (activeCue.viseme === 'viseme_aa') targetMouthOpen = activeCue.intensity * 0.85;
+        else if (activeCue.viseme === 'viseme_O') targetMouthOpen = activeCue.intensity * 0.55;
+        else if (activeCue.viseme === 'viseme_E' || activeCue.viseme === 'viseme_I') targetMouthOpen = activeCue.intensity * 0.35;
+        else if (activeCue.viseme === 'viseme_U') targetMouthOpen = activeCue.intensity * 0.40;
+        else if (activeCue.viseme === 'viseme_PP' || activeCue.viseme === 'viseme_sil') targetMouthOpen = 0;
+        else targetMouthOpen = 0.22;
+      } else if (hasExternalAudio) {
+        targetMouthOpen = audioPhonemes.openness * 0.9;
+      } else if (isSpeaking) {
+        targetMouthOpen = Math.abs(Math.sin(t * 8) * Math.cos(t * 12)) * 0.65;
+      }
+
+      smoothedMouthOpenRef.current = THREE.MathUtils.lerp(smoothedMouthOpenRef.current, targetMouthOpen, delta * 26);
+      const mouthOpenIdx = dict['mouthOpen'];
+      if (mouthOpenIdx !== undefined) {
+        influences[mouthOpenIdx] = smoothedMouthOpenRef.current;
+      }
+
+      // Synchronize teeth mesh morph targets
+      if (teethMeshRef.current && teethMeshRef.current.morphTargetDictionary && teethMeshRef.current.morphTargetInfluences) {
+        const tDict = teethMeshRef.current.morphTargetDictionary;
+        const tInf = teethMeshRef.current.morphTargetInfluences;
+        for (const viseme of ALL_OCULUS_VISEMES) {
+          const idx = tDict[viseme] ?? (viseme === 'viseme_aa' ? tDict['viseme_AA'] : undefined);
+          if (idx !== undefined) {
+            tInf[idx] = currentVisemeWeights.current[viseme] || 0;
+          }
+        }
+        const tOpen = tDict['mouthOpen'];
+        if (tOpen !== undefined) {
+          tInf[tOpen] = smoothedMouthOpenRef.current;
+        }
+      }
+
+      // Subtle jaw rotation for organic physical opening
+      if (jawRef.current) {
+        jawRef.current.rotation.x = THREE.MathUtils.lerp(
+          jawRef.current.rotation.x,
+          smoothedMouthOpenRef.current * 0.08,
           delta * 20
         );
+      }
 
-        if (mouthOpenIdx !== undefined) influences[mouthOpenIdx] = smoothedOpennessRef.current;
-        if (visemeOIdx !== undefined) influences[visemeOIdx] = smoothedRoundedRef.current;
-        if (visemeIIdx !== undefined) influences[visemeIIdx] = smoothedConsonantRef.current;
-
-        // Synchronize teeth morph targets if present
-        if (teethMeshRef.current && teethMeshRef.current.morphTargetDictionary && teethMeshRef.current.morphTargetInfluences) {
-          const tDict = teethMeshRef.current.morphTargetDictionary;
-          const tInf = teethMeshRef.current.morphTargetInfluences;
-          const tOpenIdx = tDict['mouthOpen'] ?? tDict['viseme_aa'] ?? tDict['viseme_AA'];
-          if (tOpenIdx !== undefined) tInf[tOpenIdx] = smoothedOpennessRef.current;
-        }
-      } else if (isSpeaking) {
-        // Natural procedural speech fallback when teacherState is speaking but audio is silent/pending
-        const speechIntensity = Math.abs(Math.sin(t * 9) * Math.cos(t * 14));
-        const oIntensity = Math.abs(Math.sin(t * 6));
-
-        if (mouthOpenIdx !== undefined) {
-          influences[mouthOpenIdx] = THREE.MathUtils.lerp(influences[mouthOpenIdx], speechIntensity * 0.75, delta * 15);
-        }
-        if (visemeOIdx !== undefined) {
-          influences[visemeOIdx] = THREE.MathUtils.lerp(influences[visemeOIdx], oIntensity * 0.4, delta * 12);
-        }
-      } else {
-        // Resting neutral state
-        smoothedOpennessRef.current = THREE.MathUtils.lerp(smoothedOpennessRef.current, 0, delta * 12);
-        smoothedRoundedRef.current = THREE.MathUtils.lerp(smoothedRoundedRef.current, 0, delta * 12);
-        smoothedConsonantRef.current = THREE.MathUtils.lerp(smoothedConsonantRef.current, 0, delta * 12);
-
-        if (mouthOpenIdx !== undefined) influences[mouthOpenIdx] = smoothedOpennessRef.current;
-        if (visemeOIdx !== undefined) influences[visemeOIdx] = smoothedRoundedRef.current;
-        if (visemeIIdx !== undefined) influences[visemeIIdx] = smoothedConsonantRef.current;
+      // Subtle eyebrow animation for expressive engagement
+      const browIdx = dict['browInnerUp'];
+      if (browIdx !== undefined) {
+        const targetBrow = isArticulating && (activeCue.viseme === 'viseme_aa' || teacherState === 'celebrating' || teacherState === 'questioning') ? 0.3 : 0;
+        smoothedBrowUpRef.current = THREE.MathUtils.lerp(smoothedBrowUpRef.current, targetBrow, delta * 12);
+        influences[browIdx] = smoothedBrowUpRef.current;
       }
     }
   });
@@ -328,4 +374,4 @@ useGLTF.preload('/models/alex_v2.glb');
 useFBX.preload('/animations/Idle.fbx');
 useFBX.preload('/animations/Explaining.fbx');
 useFBX.preload('/animations/Pointing.fbx');
-useFBX.preload('/animations/Standing Greeting.fbx');
+useFBX.preload('/animations/Greeting.fbx');

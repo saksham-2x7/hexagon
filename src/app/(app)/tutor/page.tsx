@@ -151,7 +151,17 @@ export default function TutorPage() {
     }
   }, [demoState]);
 
-  const { playTestSpeech, playAudioBuffer, getAudioContext } = useAudioLipSync();
+  const { playTestSpeech, playAudioBuffer, getAudioContext, stopAudio } = useAudioLipSync();
+
+  // Instant Mute Engine
+  useEffect(() => {
+    if (!voiceEnabled) {
+      stopAudio();
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  }, [voiceEnabled, stopAudio]);
 
   // Voice Speech Engine powered by ElevenLabs API with Web Speech API Fallback
   const speakVoice = async (text: string, durationMs: number = 3800) => {
@@ -429,7 +439,7 @@ export default function TutorPage() {
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* LEFT: 3D Educator Studio Viewport */}
-        <div className="w-[36%] h-full relative border-r border-hexagon-border bg-gradient-to-b from-[#0e1217] to-[#080a0d] overflow-hidden flex flex-col">
+        <div className="w-[30%] lg:w-[35%] max-w-[420px] min-w-[320px] h-full relative border-r border-hexagon-border bg-gradient-to-b from-[#0e1217] to-[#080a0d] overflow-hidden flex flex-col">
           
           {/* Educator Status & Selector Pill */}
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-auto">
@@ -554,11 +564,11 @@ export default function TutorPage() {
           </div>
 
           {/* Bottom Console: Transcripts & Adaptive Chat */}
-          <div className="h-48 flex gap-5 shrink-0">
+          <div className="h-36 flex gap-4 shrink-0">
             
             {/* Live Synchronized Transcript Box */}
-            <div className="flex-1 bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-5 flex flex-col justify-between relative overflow-hidden shadow-md">
-              <div className="flex items-center justify-between">
+            <div className="flex-1 bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-md">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className={`p-1.5 rounded-lg ${
                     teacherState !== 'idle' && teacherState !== 'listening' 
@@ -576,19 +586,19 @@ export default function TutorPage() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => triggerChip('analogy')}
-                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
+                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
                   >
                     <Lightbulb className="w-3 h-3 text-amber-400" /> Analogy
                   </button>
                   <button 
                     onClick={() => triggerChip('simplify')}
-                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
+                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
                   >
                     <Sparkles className="w-3 h-3 text-blue-400" /> Simplify
                   </button>
                   <button 
                     onClick={() => triggerChip('quiz')}
-                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
+                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
                   >
                     <HelpCircle className="w-3 h-3 text-purple-400" /> Quiz
                   </button>
@@ -596,13 +606,10 @@ export default function TutorPage() {
               </div>
 
               {/* Spoken Caption Display */}
-              <p className="text-xl font-medium text-center leading-relaxed text-hexagon-text-primary px-4">
-                {caption || "Listening to your questions and progress..."}
-              </p>
-
-              <div className="flex items-center justify-between text-[11px] text-gray-500 border-t border-hexagon-border/60 pt-2">
-                <span>Subject: Artificial Intelligence & Machine Learning</span>
-                <span>Session Active • Adaptive Learning Mode</span>
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-lg font-medium text-center leading-relaxed text-hexagon-text-primary px-2">
+                  {caption || "Listening to your questions and progress..."}
+                </p>
               </div>
             </div>
 

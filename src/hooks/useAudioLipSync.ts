@@ -153,7 +153,7 @@ export function useAudioLipSync() {
     }
   }, []);
 
-  let activeBufferSource: AudioBufferSourceNode | null = null;
+  const activeBufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   /**
    * Play an in-memory AudioBuffer
@@ -162,10 +162,10 @@ export function useAudioLipSync() {
     const { ctx, analyser } = getOrCreateAudioContext();
     
     // BUG FIX: Prevent buffer overlap by stopping previous audio
-    if (activeBufferSource) {
+    if (activeBufferSourceRef.current) {
       try {
-        activeBufferSource.stop();
-        activeBufferSource.disconnect();
+        activeBufferSourceRef.current.stop();
+        activeBufferSourceRef.current.disconnect();
       } catch (e) {}
     }
 
@@ -175,20 +175,20 @@ export function useAudioLipSync() {
     analyser.connect(ctx.destination);
     source.onended = () => {
       if (onEnded) onEnded();
-      if (activeBufferSource === source) activeBufferSource = null;
+      if (activeBufferSourceRef.current === source) activeBufferSourceRef.current = null;
     };
     source.start(0);
     
-    activeBufferSource = source;
+    activeBufferSourceRef.current = source;
     return source;
   }, []);
 
   /**
-   * Built-in speech synthesis test utility
-   * Generates natural speech syllables with synthetic formants for immediate verification
+   * Play a procedural synthesized sweeping tone to verify lip-sync
    */
   const playTestSpeech = useCallback((durationSeconds: number = 3) => {
     const { ctx, analyser } = getOrCreateAudioContext();
+
     if (testOscillatorRef.current) {
       try { testOscillatorRef.current.stop(); } catch {}
     }
@@ -201,8 +201,7 @@ export function useAudioLipSync() {
     osc.frequency.linearRampToValueAtTime(220, ctx.currentTime + durationSeconds * 0.5);
     osc.frequency.linearRampToValueAtTime(130, ctx.currentTime + durationSeconds);
 
-    // Syllable volume envelope
-    gain.gain.setValueAtTime(0, ctx.currentTime);
+    // Amplitude modulation to simulate syllables
     const step = 0.22;
     for (let t = 0; t < durationSeconds; t += step) {
       gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + t + 0.04);
@@ -212,10 +211,20 @@ export function useAudioLipSync() {
     osc.connect(gain);
     gain.connect(analyser);
     gain.connect(ctx.destination);
-
-    osc.start();
+    
+    osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + durationSeconds);
     testOscillatorRef.current = osc;
+  }, []);
+
+  const stopAudio = useCallback(() => {
+    if (activeBufferSourceRef.current) {
+      try {
+        activeBufferSourceRef.current.stop();
+        activeBufferSourceRef.current.disconnect();
+      } catch (e) {}
+      activeBufferSourceRef.current = null;
+    }
   }, []);
 
   return {
@@ -225,6 +234,7 @@ export function useAudioLipSync() {
     connectMediaStream,
     playAudioBuffer,
     playTestSpeech,
+    stopAudio,
     resumeAudio: initContextOnUserGesture,
     getAudioContext: () => audioContextRef.current || sharedAudioContext,
   };

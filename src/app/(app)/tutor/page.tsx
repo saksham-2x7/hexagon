@@ -157,6 +157,11 @@ export default function TutorPage() {
   const speakVoice = async (text: string, durationMs: number = 3800) => {
     if (!voiceEnabled) return;
 
+    // BUG FIX: Cancel any lingering browser robotic voices before ElevenLabs starts talking
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
     try {
       const apiKey = "243f7bfba628b6e6e211fe00a41163de1e881d0713d05e09732b029c25560fae";
       // Adam for Male (Alex), Rachel for Female (Aria)

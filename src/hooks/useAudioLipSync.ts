@@ -153,17 +153,33 @@ export function useAudioLipSync() {
     }
   }, []);
 
+  let activeBufferSource: AudioBufferSourceNode | null = null;
+
   /**
    * Play an in-memory AudioBuffer
    */
   const playAudioBuffer = useCallback((buffer: AudioBuffer, onEnded?: () => void) => {
     const { ctx, analyser } = getOrCreateAudioContext();
+    
+    // BUG FIX: Prevent buffer overlap by stopping previous audio
+    if (activeBufferSource) {
+      try {
+        activeBufferSource.stop();
+        activeBufferSource.disconnect();
+      } catch (e) {}
+    }
+
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(analyser);
     analyser.connect(ctx.destination);
-    source.onended = onEnded || null;
+    source.onended = () => {
+      if (onEnded) onEnded();
+      if (activeBufferSource === source) activeBufferSource = null;
+    };
     source.start(0);
+    
+    activeBufferSource = source;
     return source;
   }, []);
 

@@ -171,7 +171,7 @@ export default function TutorPage() {
         const maleNames = ['david', 'mark', 'richard', 'alex', 'daniel', 'google uk english male', 'male', 'ravi'];
 
         // Filter voices matching the requested gender
-        let genderMatch = localeVoices.filter(v => {
+        const genderMatch = localeVoices.filter(v => {
           const lowerName = v.name.toLowerCase();
           return isMale 
             ? maleNames.some(n => lowerName.includes(n))

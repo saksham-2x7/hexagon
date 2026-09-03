@@ -370,7 +370,7 @@ export default function TutorPage() {
               <directionalLight position={[2, 3, 2]} intensity={1.4} color="#ffffff" castShadow />
               <directionalLight position={[-2.5, 2, -1.5]} intensity={1.2} color="#00FF9D" />
               <directionalLight position={[0, -1, 1]} intensity={0.5} color="#38bdf8" />
-              <Environment preset="city" />
+              <Environment files="/potsdamer_platz_1k.hdr" />
               
               <ProceduralAvatar 
                 lookAtBoard={false} 

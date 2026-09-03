@@ -12,6 +12,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAIIntentStore } from '@/store/useAIIntentStore';
+import { useAudioLipSync } from '@/hooks/useAudioLipSync';
 import ProceduralAvatar from '../../../components/teacher/ProceduralAvatar';
 import { NeuralNetworkBoard } from '../../../components/teacher/NeuralNetworkBoard';
 
@@ -51,23 +52,23 @@ function CameraDirector({
 
     switch (viewMode) {
       case 'portrait':
-        // Dead-center on the face, eyes, and smile
-        targetY = headY + 0.02;
+        // Dead-center on the face, eyes, smile, and gestures
+        targetY = headY + 0.01;
         posY = headY + 0.02;
-        posZ = 0.65;
+        posZ = 0.82;
         break;
       case 'full':
-        // Torso / waist view
-        targetY = headY - 0.45;
-        posY = headY - 0.38;
-        posZ = 2.10;
+        // Full torso / upper body view
+        targetY = headY - 0.38;
+        posY = headY - 0.32;
+        posZ = 2.30;
         break;
       case 'classroom':
       default:
-        // Ideal upper-body educator view: shoulders, chest, and head with perfect headroom
-        targetY = headY - 0.22;
-        posY = headY - 0.18;
-        posZ = 1.35;
+        // Perfect upper-body educator framing: full head, face, shoulders, and chest
+        targetY = headY - 0.10;
+        posY = headY - 0.04;
+        posZ = 1.55;
         break;
     }
 
@@ -150,9 +151,17 @@ export default function TutorPage() {
     }
   }, [demoState]);
 
-  // Voice Speech Engine (Silenced for backend team integration)
-  const speakVoice = (_text: string) => {
-    // Audio synthesis removed per task specification; backend pipeline will connect here.
+  const { playTestSpeech } = useAudioLipSync();
+
+  // Voice Speech Engine powered by Web Audio API
+  const speakVoice = (_text: string, durationMs: number = 3800) => {
+    if (voiceEnabled) {
+      try {
+        playTestSpeech(Math.max(durationMs / 1000 - 0.2, 0.8));
+      } catch (e) {
+        console.warn('Speech audio engine info:', e);
+      }
+    }
   };
 
   // Demo sequence orchestration
@@ -163,7 +172,7 @@ export default function TutorPage() {
       if (isCancelled) return Promise.resolve();
       setCaption(text);
       setTeacherState(state, text);
-      speakVoice(text);
+      speakVoice(text, duration);
       return new Promise(resolve => setTimeout(resolve, duration));
     };
 
@@ -351,18 +360,30 @@ export default function TutorPage() {
               </span>
             </div>
 
-            <button 
-              onClick={() => setShowSelector(true)}
-              className="bg-background/70 backdrop-blur-md border border-hexagon-border px-3 py-1.5 rounded-full hover:bg-hexagon-surface transition-colors flex items-center gap-1.5 text-xs font-medium text-gray-300 hover:text-white"
-            >
-              <UserCircle2 className="w-3.5 h-3.5" /> Change Tutor
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  setTeacherState('teaching', 'Demonstrating real-time audio lip-sync and ActorCore gesture mapping.');
+                  playTestSpeech(3.5);
+                }}
+                className="bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-accent hover:bg-hexagon-accent/25 px-3 py-1.5 rounded-full backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium shadow-sm hover:scale-105 active:scale-95"
+                title="Test real-time Web Audio API lip-sync"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> Test Lip-Sync
+              </button>
+              <button 
+                onClick={() => setShowSelector(true)}
+                className="bg-background/70 backdrop-blur-md border border-hexagon-border px-3 py-1.5 rounded-full hover:bg-hexagon-surface transition-colors flex items-center gap-1.5 text-xs font-medium text-gray-300 hover:text-white"
+              >
+                <UserCircle2 className="w-3.5 h-3.5" /> Change Tutor
+              </button>
+            </div>
           </div>
 
           {/* 3D Canvas Studio */}
           <div className="flex-1 w-full h-full relative">
             <Canvas 
-              camera={{ position: [0, 1.50, 1.35], fov: 36 }} 
+              camera={{ position: [0, 1.62, 1.55], fov: 38 }} 
               className="w-full h-full"
               shadows
             >

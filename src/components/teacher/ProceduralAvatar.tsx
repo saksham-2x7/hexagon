@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations, useFBX } from '@react-three/drei';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAIIntentStore } from '@/store/useAIIntentStore';
+import { useAudioLipSync } from '@/hooks/useAudioLipSync';
 import * as THREE from 'three';
 
 interface ProceduralAvatarProps {
@@ -12,9 +13,10 @@ interface ProceduralAvatarProps {
 }
 
 // Inner avatar component wrapped in Suspense
-function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
+function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAvatarProps) {
   const { profile } = useAuthStore();
   const { teacherState } = useAIIntentStore();
+  const { getPhonemeWeights } = useAudioLipSync();
 
   const isMale = profile?.tutorGender === 'male';
   const isSpeaking =
@@ -41,31 +43,70 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
   const leftArmRef = useRef<THREE.Object3D | null>(null);
   const rightArmRef = useRef<THREE.Object3D | null>(null);
   const headMeshRef = useRef<THREE.SkinnedMesh | null>(null);
+  const teethMeshRef = useRef<THREE.SkinnedMesh | null>(null);
 
-  // FBX Idle Animation
-  let fbxClip: THREE.AnimationClip | null = null;
-  try {
-    const fbx = useFBX('/animations/Idle.fbx');
-    if (fbx && fbx.animations && fbx.animations.length > 0) {
-      fbxClip = fbx.animations[0].clone();
-      fbxClip.name = 'Idle';
+  // FBX Animations (ActorCore & Mixamo gesture suite)
+  const { animations: idleClips } = useFBX('/animations/Idle.fbx');
+  const { animations: explainingClips } = useFBX('/animations/Explaining.fbx');
+  const { animations: pointingClips } = useFBX('/animations/Pointing.fbx');
+  const { animations: greetingClips } = useFBX('/animations/Standing Greeting.fbx');
+
+  // Clone and name clips immutably for React Compiler safety
+  const animationClips = useMemo(() => {
+    const list: THREE.AnimationClip[] = [];
+    if (idleClips && idleClips[0]) {
+      const c = idleClips[0].clone();
+      c.name = 'Idle';
+      list.push(c);
     }
-  } catch {
-    // Graceful fallback to procedural animation
-  }
+    if (explainingClips && explainingClips[0]) {
+      const c = explainingClips[0].clone();
+      c.name = 'Explaining';
+      list.push(c);
+    }
+    if (pointingClips && pointingClips[0]) {
+      const c = pointingClips[0].clone();
+      c.name = 'Pointing';
+      list.push(c);
+    }
+    if (greetingClips && greetingClips[0]) {
+      const c = greetingClips[0].clone();
+      c.name = 'Greeting';
+      list.push(c);
+    }
+    return list;
+  }, [idleClips, explainingClips, pointingClips, greetingClips]);
 
   const groupRef = useRef<THREE.Group>(null);
-  const { actions } = useAnimations(fbxClip ? [fbxClip] : [], groupRef);
+  const { actions } = useAnimations(animationClips, groupRef);
+  const currentAnimRef = useRef<string>('Idle');
 
-  // Play FBX idle animation if available
+  // Gesture State Machine: Crossfading between ActorCore animations
   useEffect(() => {
-    if (actions && actions['Idle']) {
-      actions['Idle'].reset().fadeIn(0.6).play();
-      return () => {
-        actions['Idle']?.fadeOut(0.6);
-      };
+    let targetAnim = 'Idle';
+    if (pointAtBoard || teacherState === 'pointing') {
+      targetAnim = 'Pointing';
+    } else if (teacherState === 'teaching' || teacherState === 'speaking') {
+      targetAnim = 'Explaining';
+    } else if (teacherState === 'celebrating') {
+      targetAnim = 'Greeting';
     }
-  }, [actions, modelUrl]);
+
+    const prevAnim = currentAnimRef.current;
+    if (actions) {
+      const targetAction = actions[targetAnim];
+      const prevAction = actions[prevAnim];
+      if (targetAction) {
+        if (prevAnim !== targetAnim && prevAction) {
+          prevAction.fadeOut(0.45);
+          targetAction.reset().fadeIn(0.45).play();
+        } else if (!targetAction.isRunning()) {
+          targetAction.reset().fadeIn(0.45).play();
+        }
+        currentAnimRef.current = targetAnim;
+      }
+    }
+  }, [teacherState, pointAtBoard, actions]);
 
   // Traverse and bind bones, materials, and morph targets
   useEffect(() => {
@@ -75,6 +116,7 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
     leftArmRef.current = null;
     rightArmRef.current = null;
     headMeshRef.current = null;
+    teethMeshRef.current = null;
 
     clonedScene.traverse((child) => {
       const name = child.name;
@@ -92,6 +134,9 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
 
         if (name === 'Wolf3D_Head') {
           headMeshRef.current = mesh;
+        }
+        if (name === 'Wolf3D_Teeth') {
+          teethMeshRef.current = mesh;
         }
 
         // Enhance material aesthetics: subtle sheen and skin tone warmth
@@ -112,7 +157,12 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
   const nextBlinkRef = useRef(3.0);
   const isBlinkingRef = useRef(false);
 
-  // Frame animation loop: Head tracking, breathing, natural blinking, speech lip-sync
+  // Real-time smoothed phonemes (fast attack, smooth release)
+  const smoothedOpennessRef = useRef(0);
+  const smoothedRoundedRef = useRef(0);
+  const smoothedConsonantRef = useRef(0);
+
+  // Frame animation loop: Head tracking, breathing, natural blinking, real-time Web Audio API lip-sync
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
 
@@ -122,15 +172,21 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
       spineRef.current.rotation.x = THREE.MathUtils.lerp(spineRef.current.rotation.x, breath, delta * 3);
     }
 
-    // 2. Gaze & Head Tracking (Look at user cursor, or look toward digital board)
+    // 2. Gaze & Head Tracking (Look at student cursor, blackboard, or thoughtful tilt)
     if (headRef.current) {
       let targetYaw = 0;
       let targetPitch = 0;
+      let targetRoll = 0;
 
-      if (lookAtBoard) {
+      if (lookAtBoard || pointAtBoard || teacherState === 'pointing') {
         // Turn gently towards digital chalkboard on the right
         targetYaw = 0.45;
         targetPitch = 0.05;
+      } else if (teacherState === 'thinking') {
+        // Expressive pensive tilt
+        targetYaw = 0.18;
+        targetPitch = 0.12;
+        targetRoll = 0.08;
       } else {
         // Softly track student's pointer for human-like eye contact
         targetYaw = (state.pointer.x * Math.PI) / 9;
@@ -149,6 +205,11 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
       headRef.current.rotation.x = THREE.MathUtils.lerp(
         headRef.current.rotation.x,
         targetPitch + microSwayPitch,
+        delta * 3.5
+      );
+      headRef.current.rotation.z = THREE.MathUtils.lerp(
+        headRef.current.rotation.z,
+        targetRoll,
         delta * 3.5
       );
     }
@@ -176,12 +237,47 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
         }
       }
 
-      // 4. Natural Speech Visemes (Mouth movement when educator is teaching)
-      const mouthOpenIdx = dict['mouthOpen'] ?? dict['viseme_AA'];
-      const visemeOIdx = dict['viseme_O'];
+      // 4. Real-time Web Audio API Lip-Sync & Multi-Band Formant Analysis
+      const phonemes = getPhonemeWeights();
+      const audioVolume = phonemes.volume;
 
-      if (isSpeaking) {
-        // Multi-frequency speech syllable simulation
+      // Morph target indices supporting both standard and Ready Player Me conventions
+      const mouthOpenIdx = dict['mouthOpen'] ?? dict['viseme_aa'] ?? dict['viseme_AA'];
+      const visemeOIdx = dict['viseme_O'] ?? dict['viseme_o'] ?? dict['viseme_U'];
+      const visemeIIdx = dict['viseme_I'] ?? dict['viseme_i'] ?? dict['viseme_E'];
+
+      if (audioVolume > 0.015) {
+        // Real-time Web Audio API speech driving the mouth morph targets
+        // Fast attack (delta * 24) so syllables open immediately; smooth decay (delta * 16)
+        smoothedOpennessRef.current = THREE.MathUtils.lerp(
+          smoothedOpennessRef.current,
+          Math.min(phonemes.openness * 1.35, 1.0),
+          delta * 24
+        );
+        smoothedRoundedRef.current = THREE.MathUtils.lerp(
+          smoothedRoundedRef.current,
+          Math.min(phonemes.rounded * 1.25, 1.0),
+          delta * 22
+        );
+        smoothedConsonantRef.current = THREE.MathUtils.lerp(
+          smoothedConsonantRef.current,
+          Math.min(phonemes.consonant * 0.9, 0.8),
+          delta * 20
+        );
+
+        if (mouthOpenIdx !== undefined) influences[mouthOpenIdx] = smoothedOpennessRef.current;
+        if (visemeOIdx !== undefined) influences[visemeOIdx] = smoothedRoundedRef.current;
+        if (visemeIIdx !== undefined) influences[visemeIIdx] = smoothedConsonantRef.current;
+
+        // Synchronize teeth morph targets if present
+        if (teethMeshRef.current && teethMeshRef.current.morphTargetDictionary && teethMeshRef.current.morphTargetInfluences) {
+          const tDict = teethMeshRef.current.morphTargetDictionary;
+          const tInf = teethMeshRef.current.morphTargetInfluences;
+          const tOpenIdx = tDict['mouthOpen'] ?? tDict['viseme_aa'] ?? tDict['viseme_AA'];
+          if (tOpenIdx !== undefined) tInf[tOpenIdx] = smoothedOpennessRef.current;
+        }
+      } else if (isSpeaking) {
+        // Natural procedural speech fallback when teacherState is speaking but audio is silent/pending
         const speechIntensity = Math.abs(Math.sin(t * 9) * Math.cos(t * 14));
         const oIntensity = Math.abs(Math.sin(t * 6));
 
@@ -192,13 +288,14 @@ function AvatarModel({ lookAtBoard = false }: ProceduralAvatarProps) {
           influences[visemeOIdx] = THREE.MathUtils.lerp(influences[visemeOIdx], oIntensity * 0.4, delta * 12);
         }
       } else {
-        // Gentle resting smile/neutral
-        if (mouthOpenIdx !== undefined) {
-          influences[mouthOpenIdx] = THREE.MathUtils.lerp(influences[mouthOpenIdx], 0, delta * 10);
-        }
-        if (visemeOIdx !== undefined) {
-          influences[visemeOIdx] = THREE.MathUtils.lerp(influences[visemeOIdx], 0, delta * 10);
-        }
+        // Resting neutral state
+        smoothedOpennessRef.current = THREE.MathUtils.lerp(smoothedOpennessRef.current, 0, delta * 12);
+        smoothedRoundedRef.current = THREE.MathUtils.lerp(smoothedRoundedRef.current, 0, delta * 12);
+        smoothedConsonantRef.current = THREE.MathUtils.lerp(smoothedConsonantRef.current, 0, delta * 12);
+
+        if (mouthOpenIdx !== undefined) influences[mouthOpenIdx] = smoothedOpennessRef.current;
+        if (visemeOIdx !== undefined) influences[visemeOIdx] = smoothedRoundedRef.current;
+        if (visemeIIdx !== undefined) influences[visemeIIdx] = smoothedConsonantRef.current;
       }
     }
   });
@@ -222,3 +319,7 @@ export default function ProceduralAvatar(props: ProceduralAvatarProps) {
 // Preload assets for instant switching
 useGLTF.preload('/models/aria_v2.glb');
 useGLTF.preload('/models/alex_v2.glb');
+useFBX.preload('/animations/Idle.fbx');
+useFBX.preload('/animations/Explaining.fbx');
+useFBX.preload('/animations/Pointing.fbx');
+useFBX.preload('/animations/Standing Greeting.fbx');

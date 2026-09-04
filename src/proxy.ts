@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 const protectedRoutes = ['/home', '/lesson', '/tutor', '/profile', '/learning', '/progress', '/flashcards', '/planner', '/library', '/setup'];
 const authRoutes = ['/login', '/signup'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Check auth cookie or token (using a dummy check for now since we use Zustand client-side)
   // In a real app we would check cookies. Since this is a prototype using Zustand localStorage, 
   // we can't reliably read it in Next.js edge middleware.

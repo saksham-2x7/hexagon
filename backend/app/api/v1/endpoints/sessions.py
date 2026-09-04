@@ -67,16 +67,18 @@ async def update_session_state(session_id: str, request: UpdateStateRequest):
 async def post_interaction(session_id: str, request: StudentInputRequest):
     session = await session_repo.get_session(session_id)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-    
-    turn = InteractionTurn(
-        turn_id=str(uuid.uuid4()),
-        state=session.current_state,
-        student_input=request.student_input
-    )
-    session.history.append(turn)
-    session.updated_at = datetime.now(timezone.utc)
-    await session_repo.update_session(session)
+        # Fallback for Vercel Ephemeral DB
+        pass
+    else:
+        turn = InteractionTurn(
+            turn_id=str(uuid.uuid4()),
+            state=session.current_state,
+            student_input=request.student_input
+        )
+        session.history.append(turn)
+        session.updated_at = datetime.now(timezone.utc)
+        await session_repo.update_session(session)
+
     
     async def sse_generator():
         async for chunk in generate_teaching_turn(session_id, request.student_input):

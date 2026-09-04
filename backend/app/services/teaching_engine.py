@@ -47,8 +47,16 @@ async def mock_generate_teaching_turn(session_id: str, student_input: Optional[s
     # 1. Fetch Session from DB
     session = await session_repo.get_session(session_id)
     if not session:
-        yield json.dumps({"error": f"Session {session_id} not found"})
-        return
+        # FALLBACK FOR VERCEL EPHEMERAL DB
+        from app.schemas.session import TeachingSession
+        from contracts.pedagogy.models import LearnerProfile as EngineProfile, EducationalLevel, LearningStyle
+        session = TeachingSession(
+            session_id=session_id,
+            learner_profile=EngineProfile(educational_level=EducationalLevel.BEGINNER, target_subject="Neural Networks", preferred_language="en", learning_style=LearningStyle.CONCEPTUAL),
+            current_topic="Neural Networks",
+            current_state=PedagogicalState.TEACHING
+        )
+
 
     topic = session.current_topic
     app_profile = session.learner_profile

@@ -1,0 +1,17 @@
+{
+  "services": {
+    "virtual-hawks-backend": {
+      "root": ".",
+      "framework": "nextjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "virtual-hawks-backend"
+      }
+    }
+  ]
+}

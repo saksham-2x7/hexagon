@@ -106,10 +106,10 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
       const prevAction = actions[prevAnim];
       if (targetAction) {
         if (prevAnim !== targetAnim && prevAction) {
-          prevAction.fadeOut(0.45);
-          targetAction.reset().fadeIn(0.45).play();
+          targetAction.reset().play();
+          prevAction.crossFadeTo(targetAction, 0.45, true);
         } else if (!targetAction.isRunning()) {
-          targetAction.reset().fadeIn(0.45).play();
+          targetAction.reset().play();
         }
         currentAnimRef.current = targetAnim;
       }
@@ -212,20 +212,20 @@ function AvatarModel({ lookAtBoard = false, pointAtBoard = false }: ProceduralAv
       // Active head orientation: counteract FBX head tilt so educator looks directly into the camera/student's eyes
       const baseFacingYaw = isMale ? 0.0 : -0.75; // Aria's FBX rig head offset
       headRef.current.rotation.y = THREE.MathUtils.lerp(
-        headRef.current.rotation.y,
+        headRef.current.rotation.y || 0,
         baseFacingYaw + (state.pointer.x * Math.PI) / 14 + microSwayYaw,
         delta * 4.5
-      );
+      ) || 0;
       headRef.current.rotation.x = THREE.MathUtils.lerp(
-        headRef.current.rotation.x,
+        headRef.current.rotation.x || 0,
         0.02 - (state.pointer.y * Math.PI) / 18 + microSwayPitch + speechNod,
         delta * 4.5
-      );
+      ) || 0;
       headRef.current.rotation.z = THREE.MathUtils.lerp(
-        headRef.current.rotation.z,
+        headRef.current.rotation.z || 0,
         targetRoll,
         delta * 4.5
-      );
+      ) || 0;
     }
 
     // 3. Natural Eye Blinking via Morph Targets

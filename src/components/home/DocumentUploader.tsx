@@ -22,9 +22,10 @@ export default function DocumentUploader() {
     setFile(selectedFile);
     setProcessingState('uploading');
     
-    setTimeout(() => setProcessingState('parsing'), 1500);
-    setTimeout(() => setProcessingState('extracting'), 3000);
-    setTimeout(() => setProcessingState('ready'), 4500);
+    // Task 3: Removed mock setTimeout redirect trap
+    alert("Backend file processing and RAG integration is not yet wired up. This mock sequence has been disabled.");
+    setProcessingState('idle');
+    setFile(null);
   };
 
   const handleDrop = (e: React.DragEvent) => {

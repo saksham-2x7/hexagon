@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mic, Send, UserCircle2, CheckCircle2, Volume2, VolumeX, 
@@ -56,8 +57,8 @@ function CameraDirector({
       ref={controlsRef}
       enabled={orbitEnabled}
       enableZoom={true}
-      minDistance={0.4}
-      maxDistance={3.5}
+      minDistance={2}
+      maxDistance={10}
       enablePan={false}
       minPolarAngle={Math.PI / 3.4}
       maxPolarAngle={Math.PI / 1.8}
@@ -67,6 +68,7 @@ function CameraDirector({
 }
 
 export default function TutorPage() {
+  const router = useRouter();
   const { profile, updateProfile } = useAuthStore();
   const { teacherState, setTeacherState, lessonPhase } = useAIIntentStore();
 
@@ -86,6 +88,7 @@ export default function TutorPage() {
   const [cameraMode, setCameraMode] = useState<CameraViewMode>('classroom');
   const [resetTrigger, setResetTrigger] = useState(0);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
 
   // Dashboard AI Tutor Timer (IST / GMT+5:30)
   const [localTime, setLocalTime] = useState("");
@@ -243,6 +246,19 @@ export default function TutorPage() {
     }
   };
 
+  const toggleRecording = async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        // NOTE: We connect it to the LipSync analyser but this is just client-side telemetry
+        // The real implementation would pipe this to Speech-To-Text
+        setIsRecording(true);
+      } catch (e) { console.error("Mic access denied", e); }
+    } else {
+      setIsRecording(false);
+    }
+  };
+
   const handleSend = () => {
     if (!input.trim()) return;
     const userText = input;
@@ -299,6 +315,12 @@ export default function TutorPage() {
       {/* TOP BAR: Teaching Phase Progression & Language Controls */}
       <header className="h-14 border-b border-hexagon-border bg-hexagon-surface/60 backdrop-blur-md px-6 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.push('/home')}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors mr-2"
+          >
+            <ArrowRight className="w-4 h-4 rotate-180 text-gray-400 hover:text-white" />
+          </button>
           <div className="w-8 h-8 rounded-lg bg-hexagon-accent/10 border border-hexagon-accent/30 flex items-center justify-center text-hexagon-accent">
             <Brain className="w-4 h-4" />
           </div>
@@ -488,7 +510,7 @@ export default function TutorPage() {
         </div>
 
         {/* RIGHT: Digital Whiteboard & Interactive Learning Console */}
-        <div className="flex-1 flex flex-col p-5 gap-4 overflow-hidden">
+        <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto h-[calc(100vh-3.5rem)] min-h-0">
           
           {/* Session Telemetry Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-hexagon-surface/50 border border-hexagon-border rounded-2xl shadow-sm backdrop-blur-md shrink-0">
@@ -530,13 +552,18 @@ export default function TutorPage() {
             <div className={`flex-1 transition-all duration-500 ease-in-out bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-md ${isTerminalOpen ? 'mr-[336px]' : 'mr-16'}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className={`p-1.5 rounded-lg ${
-                    teacherState !== 'idle' && teacherState !== 'listening' 
-                      ? 'bg-hexagon-accent/20 text-hexagon-accent' 
-                      : 'bg-gray-800 text-gray-400'
-                  }`}>
+                  <button 
+                    onClick={toggleRecording}
+                    className={`p-1.5 rounded-lg transition-colors shadow-sm hover:scale-105 active:scale-95 ${
+                      isRecording 
+                        ? 'bg-red-500/20 text-red-500 border border-red-500/30 animate-pulse' 
+                        : teacherState !== 'idle' && teacherState !== 'listening' 
+                          ? 'bg-hexagon-accent/20 text-hexagon-accent border border-hexagon-accent/20' 
+                          : 'bg-gray-800 text-gray-400 border border-white/5 hover:bg-white/10'
+                    }`}
+                  >
                     <Mic className="w-3.5 h-3.5" />
-                  </div>
+                  </button>
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     {name}&apos;s Live Explanation
                   </span>

@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -85,7 +85,7 @@ export default function TutorPage() {
 
   return (
     <div className="relative w-full h-full bg-[#09090b] text-white overflow-hidden flex flex-col font-sans">
-      <LiveAIEngine />
+      <Suspense fallback={null}><LiveAIEngine /></Suspense>
 
       {/* TOP NAV HEADER */}
       <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 pointer-events-auto">

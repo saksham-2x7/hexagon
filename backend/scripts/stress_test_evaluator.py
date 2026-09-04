@@ -33,7 +33,7 @@ class LLMValidationError(Exception):
 def evaluate_student_input(student_input: str) -> PedagogicalEvaluation:
     print("  [API Call] Requesting evaluation from Gemini...")
     response = client.models.generate_content(
-        model='gemini-7.7-flash',
+        model='gemini-3.7-flash',
         contents=f"Student Response: {student_input}",
         config=types.GenerateContentConfig(
             response_mime_type="application/json",

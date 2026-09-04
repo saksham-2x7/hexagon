@@ -81,7 +81,7 @@ async def mock_generate_teaching_turn(session_id: str, student_input: Optional[s
                 system_instruction="You are a pedagogical evaluator assessing a student's answer.",
                 user_prompt=eval_prompt,
                 schema=PedagogicalEvaluation,
-                model='gemini-7.7-flash'
+                model='gemini-3.7-flash'
             )
         except Exception:
             evaluation = None
@@ -112,7 +112,7 @@ async def mock_generate_teaching_turn(session_id: str, student_input: Optional[s
             system_instruction=system_instruction,
             user_prompt="Generate the next teaching turn.",
             schema=TeachingTurn,
-            model='gemini-7.7-flash'
+            model='gemini-3.7-flash'
         )
     except Exception:
         teaching_turn = None

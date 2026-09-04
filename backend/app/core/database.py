@@ -2,10 +2,12 @@ import aiosqlite
 import json
 import logging
 from typing import Optional, List, Dict, Any
+import os
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = "app.db"
+# Use /tmp for Vercel Serverless which has read-only filesystems
+DB_PATH = "/tmp/app.db" if os.environ.get("VERCEL") else "app.db"
 
 class DocumentStore:
     """
@@ -25,7 +27,7 @@ class DocumentStore:
                 )
             """)
             await db.commit()
-            logger.info("Initialized SQLite document store.")
+            logger.info(f"Initialized SQLite document store at {DB_PATH}.")
             
     @staticmethod
     async def get(collection: str, id: str) -> Optional[Dict[str, Any]]:

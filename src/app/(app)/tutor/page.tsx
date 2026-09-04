@@ -87,6 +87,22 @@ export default function TutorPage() {
   const [resetTrigger, setResetTrigger] = useState(0);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
 
+  // Dashboard AI Tutor Timer
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  const formattedTime = useMemo(() => {
+    const m = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+    const s = (elapsedSeconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }, [elapsedSeconds]);
+
   // Teaching Phase (Round 2 Rubric)
   const phases = [
     { id: 'understand', label: 'Understand' },
@@ -490,7 +506,7 @@ export default function TutorPage() {
             </div>
             
             <div className="flex items-center gap-4">
-              <span className="text-[11px] font-mono text-gray-400">Time: <span className="text-white">12:45</span> / 20:00</span>
+              <span className="text-[11px] font-mono text-gray-400">Time: <span className="text-white">{formattedTime}</span> / 20:00</span>
               <div className="px-2.5 py-1 rounded-md bg-hexagon-accent/10 border border-hexagon-accent/20 text-hexagon-accent text-[10px] font-bold font-mono tracking-wide uppercase">
                 Phase: {lessonPhase}
               </div>

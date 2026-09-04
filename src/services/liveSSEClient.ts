@@ -4,7 +4,7 @@ import { TeacherState } from '../types/teacher';
 import { QuestionProps } from '../features/assessment/QuestionPanel';
 import { speechSynthesizer } from './speechSynthesizer';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 export interface BackendTeachingTurn {
   phase?: LessonPhase;

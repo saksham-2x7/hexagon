@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     
     # Gemini
     GEMINI_API_KEY: str = ""
-    DEFAULT_MODEL: str = "gemini-2.5-flash"
+    DEFAULT_MODEL: str = "gemini-7.7-flash"
     
     # CORS settings
     BACKEND_CORS_ORIGINS: list[str] = ["*"]

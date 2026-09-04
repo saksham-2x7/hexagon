@@ -1,0 +1,777 @@
+1: "use client";
+2: import { useState, useRef, useEffect, useMemo } from 'react';
+3: import { motion, AnimatePresence } from 'framer-motion';
+4: import { 
+5:   Mic, Send, UserCircle2, CheckCircle2, Volume2, VolumeX, 
+6:   RotateCcw, Sparkles, Brain, Lightbulb, Compass, HelpCircle, 
+7:   ArrowRight, Globe, Lock, Unlock, Eye, Maximize2, User,
+8:   MessageSquare, X
+9: } from 'lucide-react';
+10: import { Canvas, useFrame, useThree } from '@react-three/fiber';
+11: import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
+12: import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+13: import * as THREE from 'three';
+14: import { useAuthStore } from '@/store/useAuthStore';
+15: import { useAIIntentStore } from '@/store/useAIIntentStore';
+16: import { useAudioLipSync } from '@/hooks/useAudioLipSync';
+17: import { speechSynthesizer } from '@/services/speechSynthesizer';
+18: import ProceduralAvatar from '../../../components/teacher/ProceduralAvatar';
+19: import { NeuralNetworkBoard } from '../../../components/teacher/NeuralNetworkBoard';
+20: 
+21: type CameraViewMode = 'portrait' | 'classroom' | 'full';
+22: 
+23: function CameraDirector({ 
+24:   viewMode, 
+25:   orbitEnabled,
+26:   resetTrigger
+27: }: { 
+28:   viewMode: CameraViewMode; 
+29:   orbitEnabled: boolean;
+30:   resetTrigger: number;
+31: }) {
+32:   const { camera } = useThree();
+33:   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+34: 
+35:   useEffect(() => {
+36:     if (controlsRef.current) {
+37:       if (viewMode === 'portrait') {
+38:         // Direct face & lip-sync focus
+39:         camera.position.set(0, 1.66, 0.85);
+40:         controlsRef.current.target.set(0, 1.62, 0);
+41:       } else if (viewMode === 'full') {
+42:         // Full body / torso view
+43:         camera.position.set(0, 1.35, 2.30);
+44:         controlsRef.current.target.set(0, 1.25, 0);
+45:       } else {
+46:         // Perfect upper-body classroom view: face, smile, shoulders, gestures
+47:         camera.position.set(0, 1.58, 1.50);
+48:         controlsRef.current.target.set(0, 1.48, 0);
+49:       }
+50:       controlsRef.current.update();
+51:     }
+52:   }, [viewMode, resetTrigger, camera]);
+53: 
+54:   return (
+55:     <OrbitControls
+56:       ref={controlsRef}
+57:       enabled={orbitEnabled}
+58:       enableZoom={true}
+59:       minDistance={0.4}
+60:       maxDistance={3.5}
+61:       enablePan={false}
+62:       minPolarAngle={Math.PI / 3.4}
+63:       maxPolarAngle={Math.PI / 1.8}
+64:       target={[0, 1.48, 0]}
+65:     />
+66:   );
+67: }
+68: 
+69: export default function TutorPage() {
+70:   const { profile, updateProfile } = useAuthStore();
+71:   const { teacherState, setTeacherState } = useAIIntentStore();
+72: 
+73:   const isMale = profile?.tutorGender === 'male';
+74:   const name = isMale ? 'ALEX' : 'ARIA';
+75:   const language = profile?.language || 'en';
+76: 
+77:   // State Machine for Demo & Curriculum
+78:   const [demoState, setDemoState] = useState<'intro' | 'explain_weights' | 'wait_for_slider' | 'slider_moved' | 'evaluate_answer' | 'success'>('intro');
+79:   const [weight, setWeight] = useState(1.0);
+80:   const [caption, setCaption] = useState("");
+81:   const [messages, setMessages] = useState<{ role: 'user' | 'teacher', text: string }[]>([]);
+82:   const [input, setInput] = useState('');
+83:   const [showSelector, setShowSelector] = useState(false);
+84:   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+85:   const [voiceEnabled, setVoiceEnabled] = useState(true);
+86:   const [cameraMode, setCameraMode] = useState<CameraViewMode>('classroom');
+87:   const [resetTrigger, setResetTrigger] = useState(0);
+88:   const [orbitEnabled, setOrbitEnabled] = useState(true);
+89: 
+90:   // Teaching Phase (Round 2 Rubric)
+91:   const phases = [
+92:     { id: 'understand', label: 'Understand' },
+93:     { id: 'plan', label: 'Plan' },
+94:     { id: 'explain', label: 'Explain' },
+95:     { id: 'demonstrate', label: 'Demonstrate' },
+96:     { id: 'question', label: 'Question' },
+97:     { id: 'evaluate', label: 'Evaluate' },
+98:     { id: 'adapt', label: 'Adapt' }
+99:   ];
+100: 
+101:   const currentPhaseIndex = useMemo(() => {
+102:     switch (demoState) {
+103:       case 'intro': return 1; // Plan
+104:       case 'explain_weights': return 2; // Explain
+105:       case 'wait_for_slider': return 3; // Demonstrate
+106:       case 'slider_moved': return 4; // Question
+107:       case 'evaluate_answer': return 5; // Evaluate
+108:       case 'success': return 6; // Adapt
+109:       default: return 0;
+110:     }
+111:   }, [demoState]);
+112: 
+113: <<<<<<< ours
+114:   const { playTestSpeech, playAudioBuffer, getAudioContext, stopAudio } = useAudioLipSync();
+115: 
+116:   // Instant Mute Engine
+117:   useEffect(() => {
+118:     if (!voiceEnabled) {
+119:       stopAudio();
+120:       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+121:         window.speechSynthesis.cancel();
+122:       }
+123:     }
+124:   }, [voiceEnabled, stopAudio]);
+125: 
+126:   // Voice Speech Engine powered by ElevenLabs API with Web Speech API Fallback
+127:   const speakVoice = async (text: string, durationMs: number = 3800) => {
+128:     if (!voiceEnabled) return;
+129: 
+130:     // BUG FIX: Cancel any lingering browser robotic voices before ElevenLabs starts talking
+131:     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+132:       window.speechSynthesis.cancel();
+133:     }
+134: 
+135:     try {
+136:       const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+137:       if (!apiKey) {
+138:         throw new Error("Missing NEXT_PUBLIC_ELEVENLABS_API_KEY in .env");
+139:       }
+140:       
+141:       // Adam for Male (Alex), Rachel for Female (Aria)
+142:       const voiceId = isMale ? "pNInz6obbfDQGcgMyIGb" : "21m00Tcm4TlvDq8ikWAM"; 
+143:       
+144:       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+145:         method: "POST",
+146:         headers: {
+147:           "Accept": "audio/mpeg",
+148:           "Content-Type": "application/json",
+149:           "xi-api-key": apiKey
+150:         },
+151:         body: JSON.stringify({
+152:           text: text,
+153:           model_id: "eleven_multilingual_v2", // Supports English and Hindi natively
+154:           voice_settings: {
+155:             stability: 0.5,
+156:             similarity_boost: 0.75
+157:           }
+158:         })
+159:       });
+160: 
+161:       if (!response.ok) throw new Error("ElevenLabs API request failed.");
+162: 
+163:       const arrayBuffer = await response.arrayBuffer();
+164:       const ctx = getAudioContext();
+165:       if (!ctx) return;
+166:       
+167:       // Decode the MP3 stream into raw PCM audio and route it through the lip-sync AnalyserNode
+168:       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+169:       playAudioBuffer(audioBuffer);
+170: 
+171:     } catch (apiError) {
+172:       console.warn("ElevenLabs TTS failed, falling back to Web Speech:", apiError);
+173:       
+174:       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+175:         try {
+176:           window.speechSynthesis.cancel();
+177:           const utterance = new SpeechSynthesisUtterance(text);
+178:           
+179:           const voices = window.speechSynthesis.getVoices();
+180:           const langPrefix = (language.toLowerCase() === 'hi') ? 'hi' : 'en';
+181:           let localeVoices = voices.filter(v => v.lang.toLowerCase().startsWith(langPrefix));
+182:           if (localeVoices.length === 0) localeVoices = voices.filter(v => v.lang.startsWith('en'));
+183: 
+184:           const femaleNames = ['zira', 'samantha', 'victoria', 'susan', 'hazel', 'google us english', 'female', 'aditi'];
+185:           const maleNames = ['david', 'mark', 'richard', 'alex', 'daniel', 'google uk english male', 'male', 'ravi'];
+186: 
+187:           const genderMatch = localeVoices.filter(v => {
+188:             const lowerName = v.name.toLowerCase();
+189:             return isMale 
+190:               ? maleNames.some(n => lowerName.includes(n))
+191:               : femaleNames.some(n => lowerName.includes(n));
+192:           });
+193: 
+194:           const premiumVoices = genderMatch.filter(v => 
+195:             v.name.toLowerCase().includes('natural') || 
+196:             v.name.toLowerCase().includes('online')
+197:           );
+198: 
+199:           if (premiumVoices.length > 0) {
+200:             utterance.voice = premiumVoices[0];
+201:           } else if (genderMatch.length > 0) {
+202:             utterance.voice = genderMatch[0];
+203:           } else if (localeVoices.length > 0) {
+204:             const safeFallback = localeVoices.find(v => {
+205:               const lowerName = v.name.toLowerCase();
+206:               return isMale 
+207:                 ? !femaleNames.some(n => lowerName.includes(n)) 
+208:                 : !maleNames.some(n => lowerName.includes(n));
+209:             });
+210:             utterance.voice = safeFallback || localeVoices[0];
+211:           }
+212:           
+213:           utterance.rate = 1.05;
+214:           window.speechSynthesis.speak(utterance);
+215:         } catch (e) {
+216:           console.warn('Speech audio engine info:', e);
+217:         }
+218:       }
+219:     }
+220:   };
+221: 
+222:   // Demo sequence orchestration with synchronized speech & phoneme timeline
+223:   useEffect(() => {
+224:     let isCancelled = false;
+225: 
+226:     const speak = async (
+227:       text: string, 
+228:       state: import('@/types/teacher').TeacherState = 'speaking', 
+229:       minDurationMs: number = 3200
+230:     ) => {
+231:       if (isCancelled) return;
+232:       setCaption(text);
+233:       setTeacherState(state, text);
+234: 
+235:       const speechPromise = speechSynthesizer.speak(text, {
+236:         gender: isMale ? 'male' : 'female',
+237:         rate: 1.0,
+238:         pitch: isMale ? 0.95 : 1.05
+239:       });
+240:       const timerPromise = new Promise(resolve => setTimeout(resolve, minDurationMs));
+241:       await Promise.all([speechPromise, timerPromise]);
+242:       await new Promise(resolve => setTimeout(resolve, 350));
+243:     };
+244: 
+245:     const runDemo = async () => {
+246:       if (demoState === 'intro') {
+247:         await speak(`Hello! I'm ${name}, your personal AI Educator. Today we're mastering Neural Networks from first principles.`, 'teaching', 4200);
+248:         await speak("Look at the digital board beside me. We have our Input signals, Hidden layer representations, and Output.", 'pointing', 4200);
+249:         setDemoState('explain_weights');
+250:       } else if (demoState === 'explain_weights') {
+251:         await speak("Notice the connections between neurons. Each carries a mathematical 'weight' that regulates signal strength.", 'teaching', 4500);
+252:         await speak("Try sliding weight w₁ on the board now to observe how the signal flows forward.", 'pointing', 3800);
+253:         setDemoState('wait_for_slider');
+254:         setTeacherState('listening', '');
+255:         setCaption("Waiting for you to adjust the weight w₁ on the board...");
+256:       } else if (demoState === 'slider_moved') {
+257:         await speak(`Brilliant! You tuned weight w₁ to ${weight.toFixed(2)}.`, 'celebrating', 3200);
+258:         await speak("Now let's check your intuition: If we need the output node to fire a strong MATCH, should we increase or decrease this weight?", 'questioning', 5000);
+259:         setDemoState('evaluate_answer');
+260:         setTeacherState('listening', '');
+261:         setCaption("Question: Should we increase or decrease the weight for a stronger match? (Reply below)");
+262:       } else if (demoState === 'success') {
+263:         await speak("Spot on! Increasing the synaptic weight amplifies forward transmission to cross the activation threshold.", 'celebrating', 4800);
+264:         await speak("You've mastered Forward Propagation. Shall we move forward to Backpropagation and Gradient Descent?", 'teaching', 4500);
+265:         setTeacherState('idle', '');
+266:         setCaption("Concept mastered! Ready for the next module.");
+267:       }
+268:     };
+269: 
+270:     runDemo();
+271: 
+272:     return () => {
+273:       isCancelled = true;
+274:       speechSynthesizer.stop();
+275:     };
+276:   }, [demoState, name, isMale, setTeacherState]);
+277: 
+278:   const handleWeightChange = (val: number) => {
+279:     setWeight(val);
+280:     if (demoState === 'wait_for_slider') {
+281:       setDemoState('slider_moved');
+282:     }
+283:   };
+284: 
+285:   const handleSend = () => {
+286:     if (!input.trim()) return;
+287:     const userText = input;
+288:     setMessages(prev => [...prev, { role: 'user', text: userText }]);
+289:     setInput('');
+290: 
+291:     if (demoState === 'evaluate_answer') {
+292:       const isCorrect = userText.toLowerCase().includes('increase') || userText.toLowerCase().includes('higher') || userText.toLowerCase().includes('up') || userText.toLowerCase().includes('more');
+293:       
+294:       if (isCorrect) {
+295:         setDemoState('success');
+296:       } else {
+297:         setCaption("Not quite! Remember, larger positive weights amplify the forward signal. Try thinking about strengthening it!");
+298:         setTeacherState('correcting', 'Not quite.');
+299:         speakVoice("Not quite. Remember, larger positive weights amplify the forward signal. Try again!");
+300:         setTimeout(() => setTeacherState('listening', ''), 3500);
+301:       }
+302:     } else {
+303:       // Contextual teaching response
+304:       setTimeout(() => {
+305:         const response = `Great question. When you explore ${userText.slice(0, 20)}..., think of how each hidden layer acts as a feature extractor. Let me know if you want an analogy!`;
+306:         setMessages(prev => [...prev, { role: 'teacher', text: response }]);
+307:         speakVoice(response);
+308:       }, 1000);
+309:     }
+310:   };
+311: 
+312:   const triggerChip = (action: string) => {
+313:     switch (action) {
+314:       case 'analogy':
+315:         setCaption("Think of weights like a volume dial: turning it up lets that specific feature speak louder to the next layer.");
+316:         speakVoice("Think of weights like a volume dial: turning it up lets that specific feature speak louder to the next layer.");
+317:         setTeacherState('teaching', 'Analogy');
+318:         break;
+319:       case 'simplify':
+320:         setCaption("In simple terms: Weight = Importance. Higher weight means the network pays more attention to that input.");
+321:         speakVoice("In simple terms: Weight equals importance. Higher weight means the network pays more attention to that input.");
+322:         setTeacherState('teaching', 'Simplified');
+323:         break;
+324:       case 'quiz':
+325:         setCaption("Quick pop quiz: What activation function outputs strictly between 0 and 1?");
+326:         speakVoice("Quick pop quiz: What activation function outputs strictly between 0 and 1?");
+327:         setTeacherState('questioning', 'Quiz');
+328:         break;
+329:       case 'reset':
+330:         setDemoState('intro');
+331:         break;
+332:     }
+333:   };
+334: 
+335:   return (
+336:     <div className="flex flex-col h-full w-full bg-background text-hexagon-text-primary overflow-hidden relative select-none">
+337:       
+338:       {/* TOP BAR: Teaching Phase Progression & Language Controls */}
+339:       <header className="h-14 border-b border-hexagon-border bg-hexagon-surface/60 backdrop-blur-md px-6 flex items-center justify-between z-30 shrink-0">
+340:         <div className="flex items-center gap-3">
+341:           <div className="w-8 h-8 rounded-lg bg-hexagon-accent/10 border border-hexagon-accent/30 flex items-center justify-center text-hexagon-accent">
+342:             <Brain className="w-4 h-4" />
+343:           </div>
+344:           <div>
+345:             <h1 className="text-sm font-semibold tracking-wide flex items-center gap-2">
+346:               Neural Networks: Lesson 1
+347:               <span className="text-[10px] px-2 py-0.5 rounded-full bg-hexagon-accent/10 text-hexagon-accent border border-hexagon-accent/20">
+348:                 Interactive Lecture
+349:               </span>
+350:             </h1>
+351:           </div>
+352:         </div>
+353: 
+354:         {/* Human-like Teaching Lifecycle Progression */}
+355:         <div className="hidden lg:flex items-center gap-1 bg-background/50 border border-hexagon-border px-3 py-1.5 rounded-full">
+356:           {phases.map((phase, idx) => {
+357:             const isActive = idx === currentPhaseIndex;
+358:             const isCompleted = idx < currentPhaseIndex;
+359:             return (
+360:               <div key={phase.id} className="flex items-center">
+361:                 <span className={`text-xs px-2.5 py-1 rounded-full transition-all font-medium ${
+362:                   isActive 
+363:                     ? 'bg-hexagon-accent text-black shadow-md shadow-hexagon-accent/20 font-semibold' 
+364:                     : isCompleted 
+365:                       ? 'text-hexagon-accent font-medium' 
+366:                       : 'text-gray-500'
+367:                 }`}>
+368:                   {phase.label}
+369:                 </span>
+370:                 {idx < phases.length - 1 && (
+371:                   <span className="text-gray-600 text-xs px-0.5">›</span>
+372:                 )}
+373:               </div>
+374:             );
+375:           })}
+376:         </div>
+377: 
+378:         {/* Language & Sound Options */}
+379:         <div className="flex items-center gap-3">
+380:           <div className="flex items-center gap-1 bg-background/50 border border-hexagon-border p-1 rounded-xl text-xs">
+381:             {(['en', 'hi', 'kn', 'hinglish'] as const).map(lang => (
+382:               <button
+383:                 key={lang}
+384:                 onClick={() => updateProfile({ language: lang })}
+385:                 className={`px-2 py-1 rounded-lg uppercase font-mono font-medium transition-colors ${
+386:                   language === lang 
+387:                     ? 'bg-hexagon-accent text-black font-bold' 
+388:                     : 'text-gray-400 hover:text-white'
+389:                 }`}
+390:               >
+391:                 {lang === 'hi' ? 'हिन्दी' : lang === 'kn' ? 'ಕನ್ನಡ' : lang}
+392:               </button>
+393:             ))}
+394:           </div>
+395: 
+396:           <button 
+397:             onClick={() => setVoiceEnabled(!voiceEnabled)}
+398:             className={`p-2 rounded-xl border transition-colors ${
+399:               voiceEnabled 
+400:                 ? 'bg-hexagon-accent/10 border-hexagon-accent/40 text-hexagon-accent' 
+401:                 : 'bg-hexagon-surface border-hexagon-border text-gray-500'
+402:             }`}
+403:             title={voiceEnabled ? "Mute Teacher Audio" : "Enable Teacher Voice"}
+404:           >
+405:             {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+406:           </button>
+407:         </div>
+408:       </header>
+409: 
+410:       {/* MAIN CONTENT AREA */}
+411:       <div className="flex-1 flex overflow-hidden relative">
+412:         
+413:         {/* LEFT: 3D Educator Studio Viewport */}
+414:         <div className="w-[30%] lg:w-[35%] max-w-[420px] min-w-[320px] h-full relative border-r border-hexagon-border bg-gradient-to-b from-[#0e1217] to-[#080a0d] overflow-hidden flex flex-col">
+415:           
+416:           {/* Educator Status & Selector Pill */}
+417:           <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-auto">
+418:             <div className="flex items-center gap-2.5 bg-background/70 backdrop-blur-md border border-hexagon-border px-3.5 py-1.5 rounded-full shadow-lg">
+419:               <div className={`w-2.5 h-2.5 rounded-full ${
+420:                 teacherState !== 'idle' && teacherState !== 'listening' 
+421:                   ? 'bg-hexagon-accent animate-pulse' 
+422:                   : 'bg-emerald-400'
+423:               }`} />
+424:               <span className="text-xs font-semibold tracking-wider">{name}</span>
+425:               <span className="text-[10px] text-gray-400 border-l border-hexagon-border pl-2">
+426:                 {isMale ? 'Rigorous & Direct' : 'Socratic & Intuitive'}
+427:               </span>
+428:             </div>
+429: 
+430:             <div className="flex items-center gap-2">
+431:               <button 
+432:                 onClick={() => {
+433: <<<<<<< ours
+434:                   const text = 'Demonstrating real-time audio lip-sync and ActorCore gesture mapping.';
+435:                   setTeacherState('teaching', text);
+436:                   speakVoice(text, 3500);
+437:                 }}
+438:                 className="bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-accent hover:bg-hexagon-accent/25 px-3 py-1.5 rounded-full backdrop-blur-md transition-all flex items-center gap-1.5 text-xs font-medium shadow-sm hover:scale-105 active:scale-95"
+439:                 title="Test real-time phonetic speech lip-sync"
+440:               >
+441:                 <Sparkles className="w-3.5 h-3.5" /> Test Lip-Sync
+442:               </button>
+443:               <button 
+444:                 onClick={() => setShowSelector(true)}
+445:                 className="bg-background/70 backdrop-blur-md border border-hexagon-border px-3 py-1.5 rounded-full hover:bg-hexagon-surface transition-colors flex items-center gap-1.5 text-xs font-medium text-gray-300 hover:text-white"
+446:               >
+447:                 <UserCircle2 className="w-3.5 h-3.5" /> Change Tutor
+448:               </button>
+449:             </div>
+450:           </div>
+451: 
+452:           {/* 3D Canvas Studio */}
+453:           <div className="flex-1 w-full h-full relative">
+454:             <Canvas 
+455:               camera={{ position: [0, 1.62, 1.55], fov: 38 }} 
+456:               className="w-full h-full"
+457:               shadows
+458:             >
+459:               <ambientLight intensity={1.1} />
+460:               {/* Front Portrait Key Light illuminating face, expressions, and lips */}
+461:               <pointLight position={[0, 1.70, 1.2]} intensity={3.5} distance={4.5} color="#fff8f2" />
+462:               <directionalLight position={[0, 1.65, 2.2]} intensity={1.8} color="#ffffff" />
+463:               <directionalLight position={[2, 3, 2]} intensity={1.4} color="#ffffff" castShadow />
+464:               <directionalLight position={[-2.5, 2, -1.5]} intensity={1.2} color="#00FF9D" />
+465:               <directionalLight position={[0, -1, 1]} intensity={0.5} color="#38bdf8" />
+466:               <Environment files="/potsdamer_platz_1k.hdr" />
+467:               
+468:               <ProceduralAvatar 
+469:                 lookAtBoard={false} 
+470:                 pointAtBoard={teacherState === 'pointing'} 
+471:               />
+472: 
+473:               <ContactShadows position={[0, 0, 0]} opacity={0.65} scale={8} blur={2.2} far={3} />
+474:               <CameraDirector viewMode={cameraMode} orbitEnabled={orbitEnabled} resetTrigger={resetTrigger} />
+475:             </Canvas>
+476:           </div>
+477: 
+478:           {/* Floating Camera View Toolbar */}
+479:           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-background/85 backdrop-blur-md border border-hexagon-border p-1.5 rounded-2xl shadow-xl">
+480:             <button
+481:               onClick={() => setCameraMode('portrait')}
+482:               className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition-all ${
+483:                 cameraMode === 'portrait' ? 'bg-hexagon-accent text-black font-semibold' : 'text-gray-400 hover:text-white'
+484:               }`}
+485:               title="Focus Face / Portrait"
+486:             >
+487:               <User className="w-3.5 h-3.5" /> Face
+488:             </button>
+489:             <button
+490:               onClick={() => setCameraMode('classroom')}
+491:               className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition-all ${
+492:                 cameraMode === 'classroom' ? 'bg-hexagon-accent text-black font-semibold' : 'text-gray-400 hover:text-white'
+493:               }`}
+494:               title="Upper Body / Classroom Lecture View (Recommended)"
+495:             >
+496:               <Eye className="w-3.5 h-3.5" /> Upper Body
+497:             </button>
+498:             <button
+499:               onClick={() => setCameraMode('full')}
+500:               className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition-all ${
+501:                 cameraMode === 'full' ? 'bg-hexagon-accent text-black font-semibold' : 'text-gray-400 hover:text-white'
+502:               }`}
+503:               title="Wider View"
+504:             >
+505:               <Maximize2 className="w-3.5 h-3.5" /> Torso
+506:             </button>
+507:             <div className="w-[1px] h-4 bg-hexagon-border mx-0.5" />
+508:             <button
+509:               onClick={() => {
+510:                 setCameraMode('classroom');
+511:                 setResetTrigger(p => p + 1);
+512:               }}
+513:               className="p-1.5 rounded-xl border border-hexagon-border bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
+514:               title="Reset Camera Angle"
+515:             >
+516:               <RotateCcw className="w-3.5 h-3.5" />
+517:             </button>
+518:             <button
+519:               onClick={() => setOrbitEnabled(!orbitEnabled)}
+520:               className={`p-1.5 rounded-xl border transition-colors ${
+521:                 orbitEnabled ? 'bg-white/5 border-hexagon-border text-gray-300' : 'bg-red-500/10 border-red-500/30 text-red-400'
+522:               }`}
+523:               title={orbitEnabled ? "Orbit Active (Drag to rotate)" : "Orbit Locked"}
+524:             >
+525:               {orbitEnabled ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+526:             </button>
+527:           </div>
+528:         </div>
+529: 
+530:         {/* RIGHT: Digital Whiteboard & Interactive Learning Console */}
+531:         <div className="flex-1 flex flex-col p-5 gap-5 overflow-hidden">
+532:           
+533:           {/* Interactive Subject Board */}
+534:           <div className="flex-1 w-full rounded-[1.75rem] overflow-hidden border border-hexagon-border bg-hexagon-surface/40 shadow-xl relative flex flex-col">
+535:             <NeuralNetworkBoard 
+536:               demoState={demoState}
+537:               weightValue={weight}
+538:               onWeightChange={handleWeightChange}
+539:             />
+540:           </div>
+541: 
+542:           {/* Bottom Console: Transcripts & Adaptive Chat */}
+543:           <div className="h-36 flex gap-4 shrink-0 relative">
+544:             
+545:             {/* Live Synchronized Transcript Box */}
+546:             <div className="flex-1 mr-[336px] bg-hexagon-surface/50 border border-hexagon-border rounded-3xl p-4 flex flex-col justify-between relative overflow-hidden shadow-md">
+547:               <div className="flex items-center justify-between mb-2">
+548:                 <div className="flex items-center gap-2">
+549:                   <div className={`p-1.5 rounded-lg ${
+550:                     teacherState !== 'idle' && teacherState !== 'listening' 
+551:                       ? 'bg-hexagon-accent/20 text-hexagon-accent' 
+552:                       : 'bg-gray-800 text-gray-400'
+553:                   }`}>
+554:                     <Mic className="w-3.5 h-3.5" />
+555:                   </div>
+556:                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+557:                     {name}&apos;s Live Explanation
+558:                   </span>
+559:                 </div>
+560: 
+561:                 {/* Socratic Quick Action Chips */}
+562:                 <div className="flex items-center gap-2">
+563:                   <button 
+564:                     onClick={() => triggerChip('analogy')}
+565:                     className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
+566:                   >
+567:                     <Lightbulb className="w-3 h-3 text-amber-400" /> Analogy
+568:                   </button>
+569:                   <button 
+570:                     onClick={() => triggerChip('simplify')}
+571:                     className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
+572:                   >
+573:                     <Sparkles className="w-3 h-3 text-blue-400" /> Simplify
+574:                   </button>
+575:                   <button 
+576:                     onClick={() => triggerChip('quiz')}
+577:                     className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-hexagon-surface border border-hexagon-border text-gray-300 hover:text-white hover:border-hexagon-accent/50 transition-colors"
+578:                   >
+579:                     <HelpCircle className="w-3 h-3 text-purple-400" /> Quiz
+580:                   </button>
+581:                 </div>
+582:               </div>
+583: 
+584:               {/* Spoken Caption Display */}
+585:               <div className="flex-1 flex items-center justify-center">
+586:                 <p className="text-lg font-medium text-center leading-relaxed text-hexagon-text-primary px-2">
+587:                   {caption || "Listening to your questions and progress..."}
+588:                 </p>
+589:               </div>
+590:             </div>
+591: 
+592:             {/* Interactive Response Terminal Toggle Button */}
+593:             {!isTerminalOpen && (
+594:               <button 
+595:                 onClick={() => setIsTerminalOpen(true)}
+596:                 className="absolute bottom-2 right-2 z-30 p-3.5 rounded-full bg-hexagon-accent text-[#080a0d] shadow-lg shadow-hexagon-accent/20 hover:scale-105 active:scale-95 transition-transform"
+597:                 title="Open Student Terminal"
+598:               >
+599:                 <MessageSquare className="w-5 h-5" />
+600:               </button>
+601:             )}
+602: 
+603:             {/* Interactive Response Terminal (Floating Widget) */}
+604:             <AnimatePresence>
+605:               {isTerminalOpen && (
+606:                 <motion.div 
+607:                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
+608:                   animate={{ opacity: 1, y: 0, scale: 1 }}
+609:                   exit={{ opacity: 0, y: 20, scale: 0.95 }}
+610:                   transition={{ duration: 0.2 }}
+611:                   className="w-[320px] absolute bottom-0 right-0 h-[400px] z-30 bg-[#0e1217]/85 backdrop-blur-xl border border-hexagon-border rounded-3xl p-5 flex flex-col justify-between shadow-2xl"
+612:                 >
+613:                   <div className="flex items-center justify-between border-b border-hexagon-border/60 pb-3 mb-2 shrink-0">
+614:                     <div className="flex items-center gap-2">
+615:                       <div className="p-1.5 rounded-lg bg-gray-800 text-gray-400">
+616:                         <User className="w-3.5 h-3.5" />
+617:                       </div>
+618:                       <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+619:                         Student Terminal
+620:                       </span>
+621:                     </div>
+622:                     <button 
+623:                       onClick={() => setIsTerminalOpen(false)}
+624:                       className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+625:                     >
+626:                       <X className="w-4 h-4" />
+627:                     </button>
+628:                   </div>
+629: 
+630:                   <div className="flex-1 overflow-y-auto mb-3 space-y-3 scrollbar-hide flex flex-col justify-end">
+631:                     {messages.length === 0 ? (
+632:                       <div className="text-xs text-gray-500 text-center py-4 flex flex-col items-center gap-1">
+633:                         <Compass className="w-4 h-4 text-gray-600" />
+634:                         <span>Answer or ask anything</span>
+635:                       </div>
+636:                     ) : (
+637:                       messages.slice(-12).map((m, i) => (
+638:                         <div 
+639:                           key={i} 
+640:                           className={`p-3 rounded-2xl text-[13px] max-w-[92%] leading-relaxed ${
+641:                             m.role === 'user' 
+642:                               ? 'bg-hexagon-accent/15 border border-hexagon-accent/30 text-hexagon-text-primary ml-auto rounded-tr-sm' 
+643:                               : 'bg-hexagon-surface border border-hexagon-border text-gray-300 mr-auto rounded-tl-sm'
+644:                           }`}
+645:                         >
+646:                           {m.text}
+647:                         </div>
+648:                       ))
+649:                     )}
+650:                   </div>
+651: 
+652:                   {/* Input field */}
+653:                   <div className="relative shrink-0 mt-1">
+654:                     <input 
+655:                       type="text" 
+656:                       value={input}
+657:                       onChange={e => setInput(e.target.value)}
+658:                       onKeyDown={e => e.key === 'Enter' && handleSend()}
+659:                       placeholder="Type your message..."
+660:                       className="w-full bg-hexagon-surface/80 border border-hexagon-border py-3 pl-4 pr-10 rounded-xl text-sm outline-none focus:border-hexagon-accent transition-colors shadow-inner"
+661:                     />
+662:                     <button 
+663:                       onClick={handleSend}
+664:                       className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-hexagon-accent hover:bg-hexagon-accent/10 transition-colors"
+665:                     >
+666:                       <Send className="w-4 h-4" />
+667:                     </button>
+668:                   </div>
+669:                 </motion.div>
+670:               )}
+671:             </AnimatePresence>
+672: 
+673:           </div>
+674:         </div>
+675:       </div>
+676: 
+677:       {/* TUTOR SWITCHER MODAL */}
+678:       <AnimatePresence>
+679:         {showSelector && (
+680:           <motion.div 
+681:             initial={{ opacity: 0 }} 
+682:             animate={{ opacity: 1 }} 
+683:             exit={{ opacity: 0 }}
+684:             className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-6"
+685:           >
+686:             <motion.div 
+687:               initial={{ scale: 0.94, opacity: 0 }} 
+688:               animate={{ scale: 1, opacity: 1 }} 
+689:               exit={{ scale: 0.94, opacity: 0 }}
+690:               className="bg-[#12161d] border border-hexagon-border rounded-[2.5rem] p-8 max-w-2xl w-full shadow-2xl flex flex-col"
+691:             >
+692:               <div className="flex items-center justify-between mb-2">
+693:                 <h2 className="text-2xl font-bold tracking-tight">Select Your AI Educator</h2>
+694:                 <span className="text-xs px-3 py-1 rounded-full bg-hexagon-accent/10 text-hexagon-accent border border-hexagon-accent/20">
+695:                   Ready Player Me Rigs
+696:                 </span>
+697:               </div>
+698:               <p className="text-sm text-gray-400 mb-8">
+699:                 Each AI Teacher has a unique pedagogy, voice tone, and adaptive guidance methodology.
+700:               </p>
+701:               
+702:               <div className="grid grid-cols-2 gap-6 mb-8">
+703:                 {/* ARIA */}
+704:                 <button 
+705:                   onClick={() => { 
+706:                     updateProfile({ tutorGender: 'female' }); 
+707:                     setShowSelector(false); 
+708:                   }}
+709:                   className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all relative overflow-hidden ${
+710:                     !isMale 
+711:                       ? 'border-hexagon-accent bg-hexagon-surface/80 shadow-lg shadow-hexagon-accent/10 ring-1 ring-hexagon-accent/30' 
+712:                       : 'border-hexagon-border bg-hexagon-surface/40 hover:border-gray-500'
+713:                   }`}
+714:                 >
+715:                   <div className="flex justify-between items-center mb-3">
+716:                     <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+717:                       Socratic Model
+718:                     </span>
+719:                     {!isMale && <CheckCircle2 className="w-5 h-5 text-hexagon-accent" />}
+720:                   </div>
+721:                   <h3 className="text-2xl font-bold text-white mb-2">ARIA</h3>
+722:                   <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+723:                     Patient, thoughtful, deeply conceptual. Guides students step-by-step through first-principles analogies and intuitive visualizations.
+724:                   </p>
+725:                   <div className="mt-auto flex flex-wrap gap-1.5">
+726:                     <span className="text-[10px] px-2.5 py-1 bg-background/80 rounded-md border border-white/5 text-gray-300">Intuitive</span>
+727:                     <span className="text-[10px] px-2.5 py-1 bg-background/80 rounded-md border border-white/5 text-gray-300">Analogies</span>
+728:                     <span className="text-[10px] px-2.5 py-1 bg-background/80 rounded-md border border-white/5 text-gray-300">Patient</span>
+729:                   </div>
+730:                 </button>
+731: 
+732:                 {/* ALEX */}
+733:                 <button 
+734:                   onClick={() => { 
+735:                     updateProfile({ tutorGender: 'male' }); 
+736:                     setShowSelector(false); 
+737:                   }}
+738:                   className={`flex flex-col text-left p-6 rounded-3xl border-2 transition-all relative overflow-hidden ${
+739:                     isMale 
+740:                       ? 'border-blue-500 bg-hexagon-surface/80 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/30' 
+741:                       : 'border-hexagon-border bg-hexagon-surface/40 hover:border-gray-500'
+742:                   }`}
+743:                 >
+744:                   <div className="flex justify-between items-center mb-3">
+745:                     <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+746:                       Analytical Model
+747:                     </span>
+748:                     {isMale && <CheckCircle2 className="w-5 h-5 text-blue-500" />}
+749:                   </div>
+750:                   <h3 className="text-2xl font-bold text-white mb-2">ALEX</h3>
+751:                   <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+752:                     Rigorous, concise, highly analytical. Focuses on technical precision, mathematical formulas, and interview-grade problem solving.
+753:                   </p>
+754:                   <div className="mt-auto flex flex-wrap gap-1.5">
+755:                     <span className="text-[10px] px-2.5 py-1 bg-background/80 rounded-md border border-white/5 text-gray-300">Rigorous</span>
+756:                     <span className="text-[10px] px-2.5 py-1 bg-background/80 rounded-md border border-white/5 text-gray-300">Mathematical</span>
+757:                     <span className="text-[10px] px-2.5 py-1 bg-background/80 rounded-md border border-white/5 text-gray-300">Direct</span>
+758:                   </div>
+759:                 </button>
+760:               </div>
+761: 
+762:               <div className="flex justify-end gap-3">
+763:                 <button 
+764:                   onClick={() => setShowSelector(false)} 
+765:                   className="px-6 py-2.5 bg-hexagon-surface border border-hexagon-border rounded-xl text-sm font-medium hover:bg-white/5 transition-colors"
+766:                 >
+767:                   Close
+768:                 </button>
+769:               </div>
+770:             </motion.div>
+771:           </motion.div>
+772:         )}
+773:       </AnimatePresence>
+774: 
+775:     </div>
+776:   );
+777: }

@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 
 export default function LoginPage() {
   const router = useRouter()
-  const { setToken } = useAuthStore()
+  const { login, isAuthenticated } = useAuthStore()
   const [isLoading, setIsLoading] = React.useState(false)
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -22,16 +22,18 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
-    // In a real app, hit the backend. For now, simulate.
-    setTimeout(() => {
+    try {
       if (email && password) {
-        setToken("mock-jwt-token")
+        await login(email, password)
         router.push("/home")
       } else {
         setError("Invalid credentials. Please check your email and password.")
         setIsLoading(false)
       }
-    }, 800)
+    } catch (err) {
+      setError("An error occurred.")
+      setIsLoading(false)
+    }
   }
 
   return (

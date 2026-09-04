@@ -16,15 +16,15 @@ const SIDEBAR_ITEMS = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { token, clearToken } = useAuthStore()
+  const { isAuthenticated, logout } = useAuthStore()
 
   React.useEffect(() => {
-    if (!token) {
+    if (!isAuthenticated) {
       router.push("/login")
     }
-  }, [token, router])
+  }, [isAuthenticated, router])
 
-  if (!token) return null
+  if (!isAuthenticated) return null
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
@@ -72,7 +72,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <button
             onClick={() => {
-              clearToken()
+              logout()
               router.push("/login")
             }}
             className="flex w-full items-center space-x-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"

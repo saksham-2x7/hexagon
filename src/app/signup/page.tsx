@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 
 export default function SignupPage() {
   const router = useRouter()
-  const { setToken } = useAuthStore()
+  const { signup, isAuthenticated } = useAuthStore()
   const [isLoading, setIsLoading] = React.useState(false)
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -22,17 +22,19 @@ export default function SignupPage() {
     setIsLoading(true)
     setError("")
 
-    // In a real app, hit the backend to register.
-    setTimeout(() => {
+    try {
       if (email && password.length >= 8) {
-        setToken("mock-jwt-token")
+        await signup("New User", email, password)
         // Typically route to a setup/onboarding flow next
         router.push("/setup")
       } else {
         setError("Password must be at least 8 characters.")
         setIsLoading(false)
       }
-    }, 800)
+    } catch (err) {
+      setError("An error occurred.")
+      setIsLoading(false)
+    }
   }
 
   return (

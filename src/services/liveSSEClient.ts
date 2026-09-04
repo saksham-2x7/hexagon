@@ -1,7 +1,6 @@
 import { FastAPILearnerProfile } from '../utils/toFastAPILearnerProfile';
 import { LessonPhase, RepresentationId } from '../types/orchestration';
 import { TeacherState } from '../types/teacher';
-import { QuestionProps } from '../features/assessment/QuestionPanel';
 import { speechSynthesizer } from './speechSynthesizer';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
@@ -10,7 +9,7 @@ export interface BackendTeachingTurn {
   phase?: LessonPhase;
   message: string;
   teacher_state?: TeacherState;
-  question?: QuestionProps | null;
+  question?: any | null;
   audio_url?: string;
   audio_base64?: string;
 }

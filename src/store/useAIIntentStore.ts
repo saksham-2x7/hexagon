@@ -1,17 +1,16 @@
 import { create } from 'zustand';
 import { AIIntentState, LessonPhase, RepresentationId } from '../types/orchestration';
 import { TeacherState } from '../types/teacher';
-import { QuestionProps } from '../features/assessment/QuestionPanel';
 
 interface AIIntentStore extends AIIntentState {
   teacherState: TeacherState;
   teacherMessage: string;
-  activeQuestion: QuestionProps | null;
+  activeQuestion: any | null;
   setRepresentation: (id: RepresentationId) => void;
   setLessonPhase: (phase: LessonPhase) => void;
   setScaffoldLevel: (level: number) => void;
   setTeacherState: (state: TeacherState, message: string) => void;
-  setActiveQuestion: (question: QuestionProps | null) => void;
+  setActiveQuestion: (question: any | null) => void;
 }
 
 export const useAIIntentStore = create<AIIntentStore>((set) => ({

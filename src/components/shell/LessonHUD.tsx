@@ -2,6 +2,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, Send, User, Bot, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useAIIntentStore } from '../../store/useAIIntentStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useAudioLipSync } from '../../hooks/useAudioLipSync';
+
 
 interface ChatMessage {
   id: string;
@@ -13,6 +17,10 @@ export default function LessonHUD() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { profile } = useAuthStore();
+  const tutorGender = profile?.tutorGender || 'female';
+  const { connectAudioElement } = useAudioLipSync();
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat

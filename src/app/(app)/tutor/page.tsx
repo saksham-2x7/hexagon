@@ -87,13 +87,17 @@ export default function TutorPage() {
   const [resetTrigger, setResetTrigger] = useState(0);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
 
-  // Dashboard AI Tutor Timer (Local Clock)
+  // Dashboard AI Tutor Timer (IST / GMT+5:30)
   const [localTime, setLocalTime] = useState("");
   
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setLocalTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setLocalTime(now.toLocaleTimeString('en-US', { 
+        timeZone: 'Asia/Kolkata', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }));
     };
     updateTime(); // Initial set
     const interval = setInterval(updateTime, 1000);

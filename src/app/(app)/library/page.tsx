@@ -1,5 +1,6 @@
 "use client";
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { Book, FileText, UploadCloud, Search } from 'lucide-react';
 import DocumentUploader from '../../../components/home/DocumentUploader';
 
@@ -10,6 +11,7 @@ const RESOURCES = [
 ];
 
 export default function LibraryPage() {
+  const router = useRouter();
   return (
     <div className="max-w-6xl mx-auto p-8 pt-12 space-y-12">
       <header className="mb-8">
@@ -42,7 +44,13 @@ export default function LibraryPage() {
                     <p className="text-hexagon-text-secondary text-sm">{res.type} • {res.date}</p>
                   </div>
                 </div>
-                <button className="px-4 py-2 bg-background border border-hexagon-border rounded-lg text-sm hover:bg-hexagon-surface-hover text-hexagon-text-primary">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/tutor?topic=${encodeURIComponent(res.title)}`);
+                  }}
+                  className="px-4 py-2 bg-background border border-hexagon-border rounded-lg text-sm hover:bg-white/10 hover:border-hexagon-accent/30 text-hexagon-text-primary transition-all"
+                >
                   Review
                 </button>
               </motion.div>

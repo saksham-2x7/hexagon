@@ -1,4 +1,6 @@
+import os
 
+code = """
 "use client";
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -125,7 +127,10 @@ export default function TutorPage() {
             <Environment preset="studio" environmentIntensity={isMale ? 0.7 : 0.9} />
             <ContactShadows opacity={0.6} scale={10} blur={2.5} far={4} color="#000000" position={[0, -0.01, 0]} />
             
-            <ProceduralAvatar />
+            <ProceduralAvatar 
+              gender={isMale ? 'male' : 'female'}
+              isSpeaking={teacherState === 'speaking' || teacherState === 'teaching'}
+            />
             
             {mode === 'CONVERSATION' && (
               <OrbitControls 
@@ -252,3 +257,9 @@ export default function TutorPage() {
     </div>
   );
 }
+"""
+
+with open("src/app/(app)/tutor/page.tsx", "w") as f:
+    f.write(code)
+
+print("Overwritten src/app/(app)/tutor/page.tsx")

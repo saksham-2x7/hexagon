@@ -1,0 +1,5 @@
+- PROTECT: `useAudioLipSync.ts` and all Web Audio API viseme mapping logic. NEVER touch this.
+- PROTECT: `LiveAIEngine.tsx` and the Server-Sent Events (SSE) streaming pipeline. NEVER break the data flow.
+- PROTECT: All Zustand global state stores.
+- STACK: Next.js 16 (App Router), React 19, Tailwind CSS v4, Framer Motion.
+- LAYOUT: Zero hardcoded pixel widths for structural containers. Strictly use CSS Grid/Flex for fluid resizing.

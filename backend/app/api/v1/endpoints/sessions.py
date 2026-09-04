@@ -10,7 +10,6 @@ from app.schemas.session import TeachingSession
 from app.schemas.interaction import InteractionTurn
 from app.repositories.session_repo import session_repo
 from app.services.teaching_engine import generate_teaching_turn
-
 from contracts.pedagogy.state_machine import TeachingState, TeachingStateMachine
 
 router = APIRouter()
@@ -64,7 +63,7 @@ async def update_session_state(session_id: str, request: UpdateStateRequest):
     
     return await session_repo.update_session(session)
 
-@router.post("/{session_id}/interact", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/{session_id}/interact")
 async def post_interaction(session_id: str, request: StudentInputRequest):
     session = await session_repo.get_session(session_id)
     if not session:
@@ -75,11 +74,15 @@ async def post_interaction(session_id: str, request: StudentInputRequest):
         state=session.current_state,
         student_input=request.student_input
     )
-    
     session.history.append(turn)
     session.updated_at = datetime.now(timezone.utc)
     await session_repo.update_session(session)
-    return {"status": "accepted"}
+    
+    async def sse_generator():
+        async for chunk in generate_teaching_turn(session_id, request.student_input):
+            yield f"data: {chunk}\n\n"
+            
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")
 
 @router.get("/{session_id}/stream")
 async def stream_interaction(session_id: str):
@@ -88,9 +91,7 @@ async def stream_interaction(session_id: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
         
     async def sse_generator():
-        # Using real generate_teaching_turn 
         async for chunk in generate_teaching_turn(session_id):
-            # Format strictly as SSE: data: ...\n\n
             yield f"data: {chunk}\n\n"
             
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
